@@ -49,11 +49,30 @@ def check_dependencies() -> bool:
     except ImportError:
         missing_deps.append("Pillow")
     
+    # Check FFmpeg availability
+    try:
+        from config import config
+        ffmpeg_path = config.get_ffmpeg_path()
+        if ffmpeg_path and os.path.exists(ffmpeg_path):
+            log_info(f"FFmpeg: OK ({ffmpeg_path})")
+        else:
+            missing_deps.append("FFmpeg")
+            log_error("FFmpeg not found or not accessible")
+    except Exception as e:
+        missing_deps.append("FFmpeg")
+        log_error(f"FFmpeg check error: {e}")
+    
     if missing_deps:
         log_error(f"Missing dependencies: {', '.join(missing_deps)}")
         print("❌ Eksik bağımlılıklar tespit edildi:")
         for dep in missing_deps:
             print(f"   - {dep}")
+        
+        if "FFmpeg" in missing_deps:
+            print("\n⚠️ FFmpeg bulunamadı!")
+            print("   FFmpeg olmadan video işleme yapılamaz.")
+            print("   Lütfen ffmpeg/ klasörünün mevcut olduğundan emin olun.")
+        
         print("\n💡 Yükleme için: pip install -r requirements.txt")
         return False
     

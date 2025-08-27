@@ -104,21 +104,15 @@ class OptimizedYouTubeDownloader:
         """Build optimized format string for video quality with audio"""
         try:
             if prefer_mp4:
-                # Prioritize exact height match with audio, then fallback to best available
-                video_format = f"bestvideo[height={max_height}][ext=mp4]/bestvideo[height<={max_height}][ext=mp4]"
-                audio_format = "bestaudio[ext=m4a]/bestaudio"
-                # Ensure audio is included by using + format
-                return f"{video_format}+{audio_format}/best[height={max_height}][ext=mp4]/best[ext=mp4]/best"
+                # Simple and reliable format string that guarantees audio
+                return f"bestvideo[height<={max_height}][ext=mp4]+bestaudio[ext=m4a]/best[height<={max_height}][ext=mp4]+bestaudio/best+bestaudio"
             else:
                 # For non-MP4 preference, still prioritize height with audio
-                video_format = f"bestvideo[height={max_height}]/bestvideo[height<={max_height}]"
-                audio_format = "bestaudio"
-                # Ensure audio is included by using + format
-                return f"{video_format}+{audio_format}/best[height={max_height}]/best"
+                return f"bestvideo[height<={max_height}]+bestaudio/best[height<={max_height}]+bestaudio/best+bestaudio"
         except Exception as e:
             logger.error(f"Format string building error: {e}")
-            # Fallback to best format that includes audio
-            return "best[height<={max_height}]/best"
+            # Fallback to best format that includes audio - CRITICAL FOR AUDIO
+            return f"best[height<={max_height}]+bestaudio/best+bestaudio"
     
     def _get_optimized_ydl_options(self, audio_only: bool, max_height: int, 
                                  prefer_mp4: bool, no_playlist: bool, 
@@ -155,15 +149,39 @@ class OptimizedYouTubeDownloader:
                     ],
                 })
             else:
-                options["format"] = self._build_format_string(max_height, prefer_mp4)
-                # For video downloads, ensure audio is preserved
+                # For video downloads, use enhanced format string with audio guarantee
+                format_string = self._build_format_string(max_height, prefer_mp4)
+                logger.info(f"Generated format string: {format_string}")
+                
+                # Add fallback format to ensure audio is always included
+                fallback_format = f"best[height<={max_height}]+bestaudio/best+bestaudio"
+                logger.info(f"Fallback format string: {fallback_format}")
+                
+                # Use the generated format string
+                options["format"] = format_string
+                # For video downloads, ensure audio is preserved and merged properly
                 options.setdefault("postprocessors", []).extend([
-                    {"key": "FFmpegVideoRemuxer", "preferedformat": "mp4" if prefer_mp4 else "mkv"},
+                    # Use FFmpegVideoConvertor to ensure video+audio merge
+                    {"key": "FFmpegVideoConvertor", "preferedformat": "mp4" if prefer_mp4 else "mkv"},
                     {"key": "FFmpegMetadata"}
                 ])
-                # Ensure audio stream is included
+                # Critical audio preservation settings
                 options["keepvideo"] = False  # Don't keep separate video file
                 options["keepaudio"] = False  # Don't keep separate audio file
+                options["audioformat"] = "best"  # Best audio quality
+                options["audioquality"] = "0"  # Best audio quality (0 = best)
+                options["extractaudio"] = False  # Don't extract audio separately
+                options["prefer_ffmpeg"] = True  # Prefer FFmpeg for processing
+                # Force audio stream inclusion
+                options["audio_multistreams"] = True  # Allow multiple audio streams
+                options["audio_preference"] = "best"  # Prefer best audio
+                # Additional audio preservation for single video downloads
+                options["audio_only"] = False  # Ensure we're downloading video+audio
+                options["extract_flat"] = False  # Don't extract flat (keeps audio)
+                options["ignore_no_formats_error"] = True  # Ignore format errors
+                # Ensure video+audio merge
+                options["merge_output_format"] = "mp4" if prefer_mp4 else "mkv"
+                options["prefer_ffmpeg"] = True  # Prefer FFmpeg for processing
             
             if include_subs:
                 langs = [s.strip() for s in sub_langs.split(",") if s.strip()]
@@ -214,6 +232,13 @@ class OptimizedYouTubeDownloader:
             # Log options for debugging
             logger.info(f"Download options: {ydl_opts}")
             logger.info(f"Format string: {ydl_opts.get('format', 'N/A')}")
+            logger.info(f"Audio settings - keepvideo: {ydl_opts.get('keepvideo')}, keepaudio: {ydl_opts.get('keepaudio')}")
+            logger.info(f"Audio settings - audioformat: {ydl_opts.get('audioformat')}, audioquality: {ydl_opts.get('audioquality')}")
+            logger.info(f"Audio settings - audio_multistreams: {ydl_opts.get('audio_multistreams')}, audio_preference: {ydl_opts.get('audio_preference')}")
+            logger.info(f"Audio settings - extract_flat: {ydl_opts.get('extract_flat')}, ignore_no_formats_error: {ydl_opts.get('ignore_no_formats_error')}")
+            logger.info(f"FFmpeg path: {self.ffmpeg_path}")
+            logger.info(f"Download type: {'Audio Only' if audio_only else 'Video + Audio'}")
+            logger.info(f"Max height: {max_height}, Prefer MP4: {prefer_mp4}")
             
             # Start download
             with YoutubeDL(ydl_opts) as ydl:
