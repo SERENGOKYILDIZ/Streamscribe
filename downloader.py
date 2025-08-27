@@ -101,21 +101,24 @@ class OptimizedYouTubeDownloader:
             logger.error(f"Progress hook error: {e}")
     
     def _build_format_string(self, max_height: int, prefer_mp4: bool) -> str:
-        """Build optimized format string for video quality"""
+        """Build optimized format string for video quality with audio"""
         try:
             if prefer_mp4:
-                # Prioritize exact height match, then fallback to best available
+                # Prioritize exact height match with audio, then fallback to best available
                 video_format = f"bestvideo[height={max_height}][ext=mp4]/bestvideo[height<={max_height}][ext=mp4]"
                 audio_format = "bestaudio[ext=m4a]/bestaudio"
+                # Ensure audio is included by using + format
                 return f"{video_format}+{audio_format}/best[height={max_height}][ext=mp4]/best[ext=mp4]/best"
             else:
-                # For non-MP4 preference, still prioritize height
+                # For non-MP4 preference, still prioritize height with audio
                 video_format = f"bestvideo[height={max_height}]/bestvideo[height<={max_height}]"
                 audio_format = "bestaudio"
+                # Ensure audio is included by using + format
                 return f"{video_format}+{audio_format}/best[height={max_height}]/best"
         except Exception as e:
             logger.error(f"Format string building error: {e}")
-            return "best"
+            # Fallback to best format that includes audio
+            return "best[height<={max_height}]/best"
     
     def _get_optimized_ydl_options(self, audio_only: bool, max_height: int, 
                                  prefer_mp4: bool, no_playlist: bool, 
@@ -136,6 +139,7 @@ class OptimizedYouTubeDownloader:
                 "fragment_retries": 3,
                 "extractor_retries": 3,
                 "http_chunk_size": 10485760,  # 10MB chunks
+                "merge_output_format": "mp4" if prefer_mp4 else "mkv",
             }
             
             if audio_only:
@@ -152,10 +156,14 @@ class OptimizedYouTubeDownloader:
                 })
             else:
                 options["format"] = self._build_format_string(max_height, prefer_mp4)
+                # For video downloads, ensure audio is preserved
                 options.setdefault("postprocessors", []).extend([
                     {"key": "FFmpegVideoRemuxer", "preferedformat": "mp4" if prefer_mp4 else "mkv"},
                     {"key": "FFmpegMetadata"}
                 ])
+                # Ensure audio stream is included
+                options["keepvideo"] = False  # Don't keep separate video file
+                options["keepaudio"] = False  # Don't keep separate audio file
             
             if include_subs:
                 langs = [s.strip() for s in sub_langs.split(",") if s.strip()]
@@ -202,6 +210,10 @@ class OptimizedYouTubeDownloader:
                 audio_only, max_height, prefer_mp4, no_playlist, 
                 include_subs, sub_langs, auto_subs
             )
+            
+            # Log options for debugging
+            logger.info(f"Download options: {ydl_opts}")
+            logger.info(f"Format string: {ydl_opts.get('format', 'N/A')}")
             
             # Start download
             with YoutubeDL(ydl_opts) as ydl:

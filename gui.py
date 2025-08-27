@@ -49,9 +49,6 @@ class StreamScribeOptimizedGUI:
         # Set icon
         self._set_window_icon()
         
-        # Set fullscreen mode
-        self._set_fullscreen()
-        
         # Initialize variables
         self.output_dir = config.DEFAULT_OUTPUT_DIR
         self.downloader: Optional[OptimizedYouTubeDownloader] = None
@@ -71,6 +68,9 @@ class StreamScribeOptimizedGUI:
         # Create UI
         self._create_ui()
         
+        # Set fullscreen mode AFTER UI is created
+        self.root.after(200, self._set_fullscreen)
+        
         # Initialize downloader
         self._setup_downloader()
         
@@ -86,29 +86,124 @@ class StreamScribeOptimizedGUI:
         self.root.geometry(f"{width}x{height}+{x}+{y}")
     
     def _set_fullscreen(self):
-        """Set window to fullscreen mode"""
+        """Set window to maximized (zoomed) mode - looks fullscreen but keeps window controls"""
         try:
             # Get screen dimensions
             screen_width = self.root.winfo_screenwidth()
             screen_height = self.root.winfo_screenheight()
             
-            # Set window to fullscreen
-            self.root.attributes('-fullscreen', True)
-            
-            # Alternative method for some systems
+            # Use zoomed state instead of fullscreen (keeps window controls)
             self.root.state('zoomed')
             
             # Set geometry to screen size
             self.root.geometry(f"{screen_width}x{screen_height}+0+0")
             
-            logger.info("Window set to fullscreen mode")
+            # Store screen dimensions for responsive layout
+            self.screen_width = screen_width
+            self.screen_height = screen_height
+            self.is_fullscreen = True
+            
+            # Adjust layout for fullscreen
+            self._adjust_layout_for_fullscreen()
+            
+            logger.info("Window set to maximized (zoomed) mode")
         except Exception as e:
-            logger.warning(f"Could not set fullscreen mode: {e}")
-            # Fallback to maximized window
+            logger.warning(f"Could not set maximized mode: {e}")
+            # Fallback to normal window
             try:
-                self.root.state('zoomed')
+                self.root.geometry(f"{config.WINDOW_WIDTH}x{config.WINDOW_HEIGHT}")
+                self._center_window()
             except:
                 pass
+    
+    def _adjust_layout_for_fullscreen(self):
+        """Adjust layout elements for maximized mode"""
+        try:
+            if hasattr(self, 'is_fullscreen') and self.is_fullscreen:
+                # Increase font sizes
+                self._update_font_sizes(large=True)
+                
+                # Adjust panel widths for better maximized layout
+                self._update_panel_widths()
+                
+                # Hide debug elements in maximized mode
+                self._hide_debug_elements()
+                
+                logger.info("Layout adjusted for maximized mode")
+        except Exception as e:
+            logger.warning(f"Could not adjust layout for maximized mode: {e}")
+    
+    def _update_font_sizes(self, large=False):
+        """Update font sizes based on screen mode"""
+        try:
+            if large:
+                # Larger fonts for fullscreen
+                self.title_font = ctk.CTkFont(size=32, weight="bold")
+                self.header_font = ctk.CTkFont(size=20, weight="bold")
+                self.normal_font = ctk.CTkFont(size=16)
+                self.small_font = ctk.CTkFont(size=14)
+                
+                # Update header fonts
+                if hasattr(self, 'title_label'):
+                    self.title_label.configure(font=ctk.CTkFont(size=32, weight="bold"))
+                if hasattr(self, 'subtitle_label'):
+                    self.subtitle_label.configure(font=ctk.CTkFont(size=18))
+                if hasattr(self, 'version_label'):
+                    self.version_label.configure(font=ctk.CTkFont(size=14))
+            else:
+                # Normal fonts for windowed mode
+                self.title_font = ctk.CTkFont(size=24, weight="bold")
+                self.header_font = ctk.CTkFont(size=18, weight="bold")
+                self.normal_font = ctk.CTkFont(size=14)
+                self.small_font = ctk.CTkFont(size=12)
+                
+                # Update header fonts
+                if hasattr(self, 'title_label'):
+                    self.title_label.configure(font=ctk.CTkFont(size=24, weight="bold"))
+                if hasattr(self, 'subtitle_label'):
+                    self.subtitle_label.configure(font=ctk.CTkFont(size=12))
+                if hasattr(self, 'version_label'):
+                    self.version_label.configure(font=ctk.CTkFont(size=10))
+        except Exception as e:
+            logger.warning(f"Could not update font sizes: {e}")
+    
+    def _update_panel_widths(self):
+        """Update panel widths for fullscreen mode"""
+        try:
+            if hasattr(self, 'left_panel') and hasattr(self, 'right_panel'):
+                if self.is_fullscreen:
+                    # Better proportions for fullscreen
+                    left_width = int(self.screen_width * 0.45)  # 45% of screen
+                    right_width = int(self.screen_width * 0.45)  # 45% of screen
+                    spacing = int(self.screen_width * 0.1)      # 10% spacing
+                else:
+                    # Normal proportions
+                    left_width = 420
+                    right_width = 380
+                    spacing = 16
+                
+                # Update panel widths
+                self.left_panel.configure(width=left_width)
+                self.right_panel.configure(width=right_width)
+                
+                logger.info(f"Panel widths updated: Left={left_width}, Right={right_width}")
+        except Exception as e:
+            logger.warning(f"Could not update panel widths: {e}")
+    
+    def _hide_debug_elements(self):
+        """Hide debug elements in maximized mode"""
+        try:
+            # Hide network debug section
+            if hasattr(self, 'network_frame'):
+                self.network_frame.pack_forget()
+            
+            # Hide other debug elements
+            if hasattr(self, 'debug_label'):
+                self.debug_label.pack_forget()
+                
+            logger.info("Debug elements hidden in maximized mode")
+        except Exception as e:
+            logger.warning(f"Could not hide debug elements: {e}")
     
     def _set_window_icon(self):
         """Set window icon if available"""
@@ -133,18 +228,18 @@ class StreamScribeOptimizedGUI:
         content_frame.pack(fill="both", expand=True, pady=(8, 0))
         
         # Left panel - Controls (reduced width)
-        left_panel = ctk.CTkFrame(content_frame, width=420)  # Reduced from 480 to 420
-        left_panel.pack(side="left", fill="both", expand=True, padx=(0, 8))
-        left_panel.pack_propagate(False)
+        self.left_panel = ctk.CTkFrame(content_frame, width=420)  # Reduced from 480 to 420
+        self.left_panel.pack(side="left", fill="both", expand=True, padx=(0, 8))
+        self.left_panel.pack_propagate(False)
         
         # Right panel - Information (increased width)
-        right_panel = ctk.CTkFrame(content_frame, width=380)  # Increased from 320 to 380
-        right_panel.pack(side="right", fill="both", padx=(8, 0))
-        right_panel.pack_propagate(False)
+        self.right_panel = ctk.CTkFrame(content_frame, width=380)  # Increased from 320 to 380
+        self.right_panel.pack(side="right", fill="both", padx=(8, 0))
+        self.right_panel.pack_propagate(False)
         
         # Create panels
-        self._create_control_panel(left_panel)
-        self._create_info_panel(right_panel)
+        self._create_control_panel(self.left_panel)
+        self._create_info_panel(self.right_panel)
         
         # Bind keyboard shortcuts
         self._bind_shortcuts()
@@ -157,22 +252,72 @@ class StreamScribeOptimizedGUI:
         self.root.bind('<Escape>', self._exit_fullscreen)
     
     def _toggle_fullscreen(self, event=None):
-        """Toggle fullscreen mode"""
+        """Toggle between maximized and normal window mode"""
         try:
-            current_state = self.root.attributes('-fullscreen')
-            self.root.attributes('-fullscreen', not current_state)
-            logger.info(f"Fullscreen toggled: {not current_state}")
+            if self.is_fullscreen:
+                # Exit maximized mode
+                self.root.state('normal')
+                self.root.geometry(f"{config.WINDOW_WIDTH}x{config.WINDOW_HEIGHT}")
+                self._center_window()
+                self.is_fullscreen = False
+                self._restore_normal_layout()
+                logger.info("Exited maximized mode")
+            else:
+                # Enter maximized mode
+                self.root.state('zoomed')
+                self.is_fullscreen = True
+                self._adjust_layout_for_fullscreen()
+                logger.info("Entered maximized mode")
         except Exception as e:
-            logger.warning(f"Could not toggle fullscreen: {e}")
+            logger.warning(f"Could not toggle window mode: {e}")
     
     def _exit_fullscreen(self, event=None):
-        """Exit fullscreen mode"""
+        """Exit maximized mode"""
         try:
-            self.root.attributes('-fullscreen', False)
             self.root.state('normal')
-            logger.info("Exited fullscreen mode")
+            self.root.geometry(f"{config.WINDOW_WIDTH}x{config.WINDOW_HEIGHT}")
+            self._center_window()
+            
+            # Reset fullscreen flag
+            self.is_fullscreen = False
+            
+            # Restore normal layout
+            self._restore_normal_layout()
+            
+            logger.info("Exited maximized mode")
         except Exception as e:
-            logger.warning(f"Could not exit fullscreen: {e}")
+            logger.warning(f"Could not exit maximized mode: {e}")
+    
+    def _restore_normal_layout(self):
+        """Restore normal layout when exiting maximized mode"""
+        try:
+            # Restore normal font sizes
+            self._update_font_sizes(large=False)
+            
+            # Restore normal panel widths
+            self._update_panel_widths()
+            
+            # Show debug elements again
+            self._show_debug_elements()
+            
+            logger.info("Normal layout restored")
+        except Exception as e:
+            logger.warning(f"Could not restore normal layout: {e}")
+    
+    def _show_debug_elements(self):
+        """Show debug elements when exiting maximized mode"""
+        try:
+            # Show network debug section
+            if hasattr(self, 'network_frame'):
+                self.network_frame.pack(side="bottom", fill="x", padx=8, pady=4)
+            
+            # Show other debug elements
+            if hasattr(self, 'debug_label'):
+                self.debug_label.pack(side="bottom", fill="x", padx=8, pady=2)
+                
+            logger.info("Debug elements shown again")
+        except Exception as e:
+            logger.warning(f"Could not show debug elements: {e}")
     
     def _create_header(self, parent):
         """Create header with title and version"""
@@ -181,31 +326,31 @@ class StreamScribeOptimizedGUI:
         header_frame.pack_propagate(False)
         
         # Title
-        title_label = ctk.CTkLabel(
+        self.title_label = ctk.CTkLabel(
             header_frame,
             text=f"🎬 {config.APP_NAME}",
             font=ctk.CTkFont(size=24, weight="bold"),
             text_color=("#ffffff", "#ffffff")
         )
-        title_label.pack(side="left", padx=15, pady=15)
+        self.title_label.pack(side="left", padx=15, pady=15)
         
         # Subtitle
-        subtitle_label = ctk.CTkLabel(
+        self.subtitle_label = ctk.CTkLabel(
             header_frame,
             text="YouTube Video İndirici",
             font=ctk.CTkFont(size=12),
             text_color=("#cccccc", "#cccccc")
         )
-        subtitle_label.pack(side="left", padx=(0, 15), pady=15)
+        self.subtitle_label.pack(side="left", padx=(0, 15), pady=15)
         
         # Version
-        version_label = ctk.CTkLabel(
+        self.version_label = ctk.CTkLabel(
             header_frame,
             text=f"v{config.APP_VERSION}",
             font=ctk.CTkFont(size=10),
             text_color=("#888888", "#888888")
         )
-        version_label.pack(side="right", padx=15, pady=15)
+        self.version_label.pack(side="right", padx=15, pady=15)
     
     def _create_control_panel(self, parent):
         """Create main control panel"""
@@ -671,7 +816,11 @@ class StreamScribeOptimizedGUI:
             no_videos_label.pack(pady=5)
             return
         
-        for i, entry in enumerate(entries[:20]):  # Limit to first 20 videos
+        # Store playlist entries for tracking
+        self.playlist_entries = entries[:20]  # Limit to first 20 videos
+        self.playlist_download_status = {}  # Track download status for each video
+        
+        for i, entry in enumerate(self.playlist_entries):
             # Create a more structured video frame
             video_frame = ctk.CTkFrame(self.playlist_listbox, fg_color=("#f0f0f0", "#2b2b2b"))
             video_frame.pack(fill="x", padx=5, pady=3)
@@ -688,6 +837,16 @@ class StreamScribeOptimizedGUI:
             content_frame = ctk.CTkFrame(video_frame, fg_color="transparent")
             content_frame.pack(fill="x", padx=8, pady=5)
             
+            # Status indicator (initially hidden)
+            status_label = ctk.CTkLabel(
+                content_frame,
+                text="⏳",
+                font=ctk.CTkFont(size=14),
+                text_color=("#ffa500", "#ffa500"),  # Orange for pending
+                width=20
+            )
+            status_label.pack(side="left", padx=(5, 8), pady=5)
+            
             # Video title label with better formatting and more space
             title_label = ctk.CTkLabel(
                 content_frame,
@@ -696,7 +855,17 @@ class StreamScribeOptimizedGUI:
                 anchor="w",
                 justify="left"
             )
-            title_label.pack(side="left", fill="x", expand=True, padx=(10, 8), pady=5)
+            title_label.pack(side="left", fill="x", expand=True, padx=(0, 8), pady=5)
+            
+            # Progress label (initially hidden)
+            progress_label = ctk.CTkLabel(
+                content_frame,
+                text="",
+                font=ctk.CTkFont(size=10),
+                text_color=("#888888", "#888888"),
+                width=60
+            )
+            progress_label.pack(side="right", padx=(8, 5), pady=5)
             
             # Download button for this video with better styling
             download_btn = ctk.CTkButton(
@@ -708,6 +877,32 @@ class StreamScribeOptimizedGUI:
                 command=lambda u=url, t=title, idx=i+1: self._download_playlist_video(u, t, idx)
             )
             download_btn.pack(side="right", padx=(8, 10), pady=5)
+            
+            # Store references for status updates
+            self.playlist_download_status[i] = {
+                'frame': video_frame,
+                'status_label': status_label,
+                'progress_label': progress_label,
+                'download_btn': download_btn,
+                'title': title,
+                'url': url,
+                'index': i+1
+            }
+        
+        # Add bulk download button
+        if len(entries) > 1:
+            bulk_frame = ctk.CTkFrame(self.playlist_listbox, fg_color=("#e8f5e8", "#1a3d1a"))
+            bulk_frame.pack(fill="x", padx=5, pady=8)
+            
+            bulk_btn = ctk.CTkButton(
+                bulk_frame,
+                text="🚀 Tüm Playlist'i İndir",
+                font=ctk.CTkFont(size=12, weight="bold"),
+                fg_color=("#4CAF50", "#4CAF50"),
+                hover_color=("#45a049", "#45a049"),
+                command=self._start_bulk_download
+            )
+            bulk_btn.pack(pady=10)
         
         if len(entries) > 20:
             more_label = ctk.CTkLabel(
@@ -803,6 +998,187 @@ class StreamScribeOptimizedGUI:
                 ))
         
         threading.Thread(target=download_worker, daemon=True).start()
+    
+    def _start_bulk_download(self):
+        """Start bulk download of all playlist videos"""
+        if not hasattr(self, 'playlist_entries') or not self.playlist_entries:
+            self._show_error("Playlist videoları bulunamadı!")
+            return
+        
+        if self.bulk_download_active:
+            self._show_error("Zaten bir toplu indirme işlemi devam ediyor!")
+            return
+        
+        # Confirm bulk download
+        playlist_title = self.current_playlist_info.get('title', 'Playlist') if self.current_playlist_info else 'Playlist'
+        playlist_name = playlist_title.split(' (')[0]  # Remove video count from title
+        
+        result = messagebox.askyesno(
+            "Toplu İndirme Onayı",
+            f"'{playlist_name}' playlist'indeki tüm videoları indirmek istiyor musunuz?\n\n"
+            f"Toplam: {len(self.playlist_entries)} video\n"
+            f"Bu işlem uzun sürebilir."
+        )
+        
+        if not result:
+            return
+        
+        # Start bulk download
+        self.bulk_download_active = True
+        self.bulk_download_index = 0
+        self.bulk_download_total = len(self.playlist_entries)
+        
+        # Reset progress bar for bulk download
+        self.progress_bar.set(0)
+        self.progress_percent.configure(text="0%")
+        
+        # Update status
+        self.status_label.configure(text=f"🚀 {playlist_name} - Toplu indirme başlatılıyor...")
+        
+        # Start first video download
+        self._download_next_playlist_video()
+        
+        logger.info(f"Bulk download started for playlist: {playlist_name}")
+    
+    def _download_next_playlist_video(self):
+        """Download next video in playlist sequence"""
+        if not self.bulk_download_active or self.bulk_download_index >= self.bulk_download_total:
+            self._finish_bulk_download()
+            return
+        
+        # Get current video info
+        current_video = self.playlist_entries[self.bulk_download_index]
+        url = current_video.get('url', '')
+        title = current_video.get('title', f'Video {self.bulk_download_index + 1}')
+        
+        # Update status for current video
+        playlist_title = self.current_playlist_info.get('title', 'Playlist') if self.current_playlist_info else 'Playlist'
+        playlist_name = playlist_title.split(' (')[0]
+        
+        status_text = f"🚀 {playlist_name} - {self.bulk_download_index + 1}/{self.bulk_download_total} videosu indiriliyor"
+        self.status_label.configure(text=status_text)
+        
+        # Update video status in playlist
+        self._update_playlist_video_status(self.bulk_download_index, "downloading", "0%")
+        
+        # Get options
+        audio_only = self.format_var.get() == "audio"
+        max_height = config.get_quality_value(self.quality_var.get())
+        
+        # Create playlist-specific output directory
+        playlist_output_dir = self._get_playlist_output_dir(playlist_name)
+        
+        def download_worker():
+            try:
+                logger.info(f"Bulk download: {title} ({self.bulk_download_index + 1}/{self.bulk_download_total})")
+                
+                # Temporarily update downloader output directory
+                original_output_dir = self.downloader.output_dir
+                self.downloader.output_dir = playlist_output_dir
+                
+                success = self.downloader.download(
+                    url=url,
+                    audio_only=audio_only,
+                    max_height=max_height,
+                    prefer_mp4=True,
+                    no_playlist=True,
+                    include_subs=False
+                )
+                
+                # Restore original output directory
+                self.downloader.output_dir = original_output_dir
+                
+                if success:
+                    # Update video status to completed
+                    self.root.after(0, lambda: self._update_playlist_video_status(
+                        self.bulk_download_index, "completed", "100%"
+                    ))
+                    
+                    # Update overall progress
+                    progress = (self.bulk_download_index + 1) / self.bulk_download_total
+                    self.root.after(0, lambda: self.progress_bar.set(progress))
+                    self.root.after(0, lambda: self.progress_percent.configure(
+                        text=f"{progress * 100:.1f}%"
+                    ))
+                    
+                    logger.info(f"Bulk download video completed: {title}")
+                else:
+                    # Update video status to failed
+                    self.root.after(0, lambda: self._update_playlist_video_status(
+                        self.bulk_download_index, "failed", "❌"
+                    ))
+                    
+                    logger.error(f"Bulk download video failed: {title}")
+                
+                # Move to next video
+                self.bulk_download_index += 1
+                
+                # Download next video after a short delay
+                self.root.after(1000, self._download_next_playlist_video)
+                    
+            except Exception as e:
+                logger.error(f"Bulk download error: {e}")
+                self.root.after(0, lambda: self._update_playlist_video_status(
+                    self.bulk_download_index, "failed", "❌"
+                ))
+                
+                # Move to next video even if failed
+                self.bulk_download_index += 1
+                self.root.after(1000, self._download_next_playlist_video)
+        
+        threading.Thread(target=download_worker, daemon=True).start()
+    
+    def _finish_bulk_download(self):
+        """Finish bulk download process"""
+        self.bulk_download_active = False
+        
+        # Update final status
+        playlist_title = self.current_playlist_info.get('title', 'Playlist') if self.current_playlist_info else 'Playlist'
+        playlist_name = playlist_title.split(' (')[0]
+        
+        completed_count = sum(1 for status in self.playlist_download_status.values() 
+                            if status.get('status') == 'completed')
+        
+        if completed_count == self.bulk_download_total:
+            self.status_label.configure(text=f"✅ {playlist_name} - Tüm videolar başarıyla indirildi!")
+            self.progress_bar.set(1.0)
+            self.progress_percent.configure(text="100%")
+        else:
+            failed_count = self.bulk_download_total - completed_count
+            self.status_label.configure(text=f"⚠️ {playlist_name} - {completed_count} video indirildi, {failed_count} video başarısız")
+        
+        logger.info(f"Bulk download finished. Completed: {completed_count}/{self.bulk_download_total}")
+    
+    def _update_playlist_video_status(self, video_index: int, status: str, progress_text: str):
+        """Update status of a specific playlist video"""
+        if video_index not in self.playlist_download_status:
+            return
+        
+        video_status = self.playlist_download_status[video_index]
+        status_label = video_status['status_label']
+        progress_label = video_status['progress_label']
+        download_btn = video_status['download_btn']
+        
+        if status == "downloading":
+            status_label.configure(text="⏳", text_color=("#ffa500", "#ffa500"))  # Orange
+            progress_label.configure(text=progress_text)
+            download_btn.configure(state="disabled", text="⏳")
+            # Store status for completion tracking
+            video_status['status'] = 'downloading'
+            
+        elif status == "completed":
+            status_label.configure(text="✅", text_color=("#4CAF50", "#4CAF50"))  # Green
+            progress_label.configure(text="✅")
+            download_btn.configure(state="disabled", text="✅")
+            # Store status for completion tracking
+            video_status['status'] = 'completed'
+            
+        elif status == "failed":
+            status_label.configure(text="❌", text_color=("#f44336", "#f44336"))  # Red
+            progress_label.configure(text="❌")
+            download_btn.configure(state="disabled", text="❌")
+            # Store status for completion tracking
+            video_status['status'] = 'failed'
     
     def _get_playlist_output_dir(self, playlist_name: str) -> str:
         """Get playlist-specific output directory"""
