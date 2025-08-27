@@ -581,8 +581,8 @@ class StreamScribeOptimizedGUI:
         self.thumbnail_label = ctk.CTkLabel(
             self.info_frame,
             text="🎥\nThumbnail",
-            width=250,
-            height=140,
+            width=350,
+            height=200,
             fg_color=("#3b3b3b", "#2b2b2b"),
             corner_radius=8
         )
@@ -593,8 +593,9 @@ class StreamScribeOptimizedGUI:
             self.info_frame,
             text="Video başlığı burada görünecek",
             font=ctk.CTkFont(size=13, weight="bold"),
-            wraplength=250,
-            anchor="w"
+            wraplength=350,
+            anchor="center",
+            justify="center"
         )
         self.video_title.pack(fill="x", pady=(8, 5))
         
@@ -662,9 +663,10 @@ class StreamScribeOptimizedGUI:
             messagebox.showerror("Hata", "Lütfen bir YouTube URL'si girin!")
             return
         
-        # Reset progress bar and status for new analysis
-        self.progress_bar.set(0)
-        self.progress_percent.configure(text="0%")
+        # Reset progress bar and status for new analysis (but preserve if bulk download is active)
+        if not hasattr(self, 'bulk_download_active') or not self.bulk_download_active:
+            self.progress_bar.set(0)
+            self.progress_percent.configure(text="0%")
         self.status_label.configure(text="Video bilgileri alınıyor...")
         
         self.analyze_btn.configure(state="disabled", text="🔄 Analiz Ediliyor...")
@@ -735,8 +737,18 @@ class StreamScribeOptimizedGUI:
         if 'thumbnail' in info:
             self._load_thumbnail(info['thumbnail'])
         
-        # Enable download button
-        self.download_btn.configure(state="normal")
+        # Enable download button and set dynamic text based on content type
+        if info.get('is_playlist', False):
+            # For playlists, change button text to "Tüm Playlist'i İndir"
+            self.download_btn.configure(state="normal", text="🚀 Tüm Playlist'i İndir")
+            # Change button command to bulk download
+            self.download_btn.configure(command=self._start_bulk_download)
+        else:
+            # For single videos, use normal "İndir" text
+            self.download_btn.configure(state="normal", text="⬇️ İNDİR")
+            # Restore normal download command
+            self.download_btn.configure(command=self._start_download)
+        
         self.status_label.configure(text="Video analizi tamamlandı - İndirmeye hazır")
         
         logger.info(f"Video info displayed: {title}")
@@ -756,9 +768,9 @@ class StreamScribeOptimizedGUI:
                 response = requests.get(url, timeout=config.TIMEOUT_FAST)
                 if response.status_code == 200:
                     image = Image.open(BytesIO(response.content))
-                    image = image.resize((250, 140), Image.Resampling.LANCZOS)
+                    image = image.resize((350, 200), Image.Resampling.LANCZOS)
                     
-                    ctk_image = ctk.CTkImage(light_image=image, dark_image=image, size=(250, 140))
+                    ctk_image = ctk.CTkImage(light_image=image, dark_image=image, size=(350, 200))
                     
                     # Cache the image
                     self._thumbnail_cache[url] = ctk_image
@@ -852,8 +864,8 @@ class StreamScribeOptimizedGUI:
                 content_frame,
                 text=f"{i+1:2d}. {display_title}",
                 font=ctk.CTkFont(size=11),
-                anchor="w",
-                justify="left"
+                anchor="center",
+                justify="center"
             )
             title_label.pack(side="left", fill="x", expand=True, padx=(0, 8), pady=5)
             
@@ -889,20 +901,7 @@ class StreamScribeOptimizedGUI:
                 'index': i+1
             }
         
-        # Add bulk download button
-        if len(entries) > 1:
-            bulk_frame = ctk.CTkFrame(self.playlist_listbox, fg_color=("#e8f5e8", "#1a3d1a"))
-            bulk_frame.pack(fill="x", padx=5, pady=8)
-            
-            bulk_btn = ctk.CTkButton(
-                bulk_frame,
-                text="🚀 Tüm Playlist'i İndir",
-                font=ctk.CTkFont(size=12, weight="bold"),
-                fg_color=("#4CAF50", "#4CAF50"),
-                hover_color=("#45a049", "#45a049"),
-                command=self._start_bulk_download
-            )
-            bulk_btn.pack(pady=10)
+        # Bulk download button removed - now handled by dynamic main button
         
         if len(entries) > 20:
             more_label = ctk.CTkLabel(
@@ -1023,6 +1022,20 @@ class StreamScribeOptimizedGUI:
         if not result:
             return
         
+        # Get playlist output directory
+        playlist_output_dir = self._get_playlist_output_dir(playlist_name)
+        
+        # Verify directory was created
+        if not os.path.exists(playlist_output_dir):
+            logger.error(f"Failed to create playlist directory: {playlist_output_dir}")
+            self._show_error(f"Playlist klasörü oluşturulamadı: {playlist_output_dir}")
+            return
+        
+        logger.info(f"Playlist directory verified: {playlist_output_dir}")
+        
+        # Store playlist output directory for use in download functions
+        self.current_playlist_output_dir = playlist_output_dir
+        
         # Start bulk download
         self.bulk_download_active = True
         self.bulk_download_index = 0
@@ -1032,13 +1045,19 @@ class StreamScribeOptimizedGUI:
         self.progress_bar.set(0)
         self.progress_percent.configure(text="0%")
         
-        # Update status
-        self.status_label.configure(text=f"🚀 {playlist_name} - Toplu indirme başlatılıyor...")
+        # Store initial progress state
+        self.initial_progress = 0
+        logger.info(f"Progress bar reset for bulk download. Total videos: {self.bulk_download_total}")
+        logger.info(f"Progress calculation: Each video will add {100/self.bulk_download_total:.1f}% to progress")
+        
+        # Update status with folder information
+        folder_name = os.path.basename(playlist_output_dir)
+        self.status_label.configure(text=f"🚀 {playlist_name} - Toplu indirme başlatılıyor...\n📁 Klasör: {folder_name}")
         
         # Start first video download
         self._download_next_playlist_video()
         
-        logger.info(f"Bulk download started for playlist: {playlist_name}")
+        logger.info(f"Bulk download started for playlist: {playlist_name} in directory: {playlist_output_dir}")
     
     def _download_next_playlist_video(self):
         """Download next video in playlist sequence"""
@@ -1055,7 +1074,9 @@ class StreamScribeOptimizedGUI:
         playlist_title = self.current_playlist_info.get('title', 'Playlist') if self.current_playlist_info else 'Playlist'
         playlist_name = playlist_title.split(' (')[0]
         
-        status_text = f"🚀 {playlist_name} - {self.bulk_download_index + 1}/{self.bulk_download_total} videosu indiriliyor"
+        # Calculate current progress percentage for bulk download
+        current_progress = int(((self.bulk_download_index + 1) / self.bulk_download_total) * 100)
+        status_text = f"🚀 {playlist_name} - [{self.bulk_download_index + 1}/{self.bulk_download_total}] videosu indiriliyor | 📊 Progress: {current_progress}%"
         self.status_label.configure(text=status_text)
         
         # Update video status in playlist
@@ -1065,8 +1086,12 @@ class StreamScribeOptimizedGUI:
         audio_only = self.format_var.get() == "audio"
         max_height = config.get_quality_value(self.quality_var.get())
         
-        # Create playlist-specific output directory
-        playlist_output_dir = self._get_playlist_output_dir(playlist_name)
+        # Use the playlist output directory created in _start_bulk_download
+        playlist_output_dir = getattr(self, 'current_playlist_output_dir', None)
+        if not playlist_output_dir:
+            logger.error("Playlist output directory not found!")
+            self._show_error("Playlist klasörü bulunamadı!")
+            return
         
         def download_worker():
             try:
@@ -1094,14 +1119,23 @@ class StreamScribeOptimizedGUI:
                         self.bulk_download_index, "completed", "100%"
                     ))
                     
-                    # Update overall progress
+                    # Update overall progress - each video adds 1/total to progress
+                    # For 10 videos: 1st video = 10%, 2nd video = 20%, ..., 10th video = 100%
                     progress = (self.bulk_download_index + 1) / self.bulk_download_total
+                    
+                    # Ensure progress is between 0 and 1
+                    progress = max(0.0, min(1.0, progress))
+                    
+                    # Update progress bar (0.0 to 1.0) - BULK DOWNLOAD PROGRESS
                     self.root.after(0, lambda: self.progress_bar.set(progress))
+                    
+                    # Update percentage text (0% to 100%) - BULK DOWNLOAD PERCENTAGE
+                    percentage = int(progress * 100)
                     self.root.after(0, lambda: self.progress_percent.configure(
-                        text=f"{progress * 100:.1f}%"
+                        text=f"📋 Playlist[{self.bulk_download_index + 1}/{self.bulk_download_total}] {percentage}%"
                     ))
                     
-                    logger.info(f"Bulk download video completed: {title}")
+                    logger.info(f"BULK DOWNLOAD PROGRESS: {title} completed - {percentage}% ({self.bulk_download_index + 1}/{self.bulk_download_total})")
                 else:
                     # Update video status to failed
                     self.root.after(0, lambda: self._update_playlist_video_status(
@@ -1139,15 +1173,62 @@ class StreamScribeOptimizedGUI:
         completed_count = sum(1 for status in self.playlist_download_status.values() 
                             if status.get('status') == 'completed')
         
+        # Use the playlist output directory created in _start_bulk_download
+        playlist_output_dir = getattr(self, 'current_playlist_output_dir', None)
+        if not playlist_output_dir:
+            logger.error("Playlist output directory not found in finish!")
+            return
+        folder_name = os.path.basename(playlist_output_dir)
+        
         if completed_count == self.bulk_download_total:
-            self.status_label.configure(text=f"✅ {playlist_name} - Tüm videolar başarıyla indirildi!")
+            self.status_label.configure(text=f"✅ {playlist_name} - Tüm videolar başarıyla indirildi! (100%)\n📁 Klasör: {folder_name}")
             self.progress_bar.set(1.0)
-            self.progress_percent.configure(text="100%")
+            self.progress_percent.configure(text="📋 Playlist[10/10] 100% (Tüm videolar tamamlandı)")
+            
+            # Ask user if they want to open the folder
+            self.root.after(1000, lambda: self._ask_open_playlist_folder(playlist_output_dir, playlist_name))
         else:
             failed_count = self.bulk_download_total - completed_count
-            self.status_label.configure(text=f"⚠️ {playlist_name} - {completed_count} video indirildi, {failed_count} video başarısız")
+            final_progress = int((completed_count / self.bulk_download_total) * 100)
+            self.status_label.configure(text=f"⚠️ {playlist_name} - {completed_count} video indirildi, {failed_count} video başarısız ({final_progress}%)\n📁 Klasör: {folder_name}")
+            # Update progress bar to show final state
+            final_progress_bar = completed_count / self.bulk_download_total
+            self.progress_bar.set(final_progress_bar)
+            self.progress_percent.configure(text=f"📋 Playlist[{completed_count}/{self.bulk_download_total}] {final_progress}%")
         
-        logger.info(f"Bulk download finished. Completed: {completed_count}/{self.bulk_download_total}")
+        logger.info(f"Bulk download finished. Completed: {completed_count}/{self.bulk_download_total} in directory: {playlist_output_dir}")
+    
+    def _ask_open_playlist_folder(self, folder_path: str, playlist_name: str):
+        """Ask user if they want to open the playlist folder"""
+        try:
+            result = messagebox.askyesno(
+                "Klasör Açma",
+                f"'{playlist_name}' playlist'indeki tüm videolar indirildi!\n\n"
+                f"Klasörü açmak istiyor musunuz?\n"
+                f"📁 {os.path.basename(folder_path)}"
+            )
+            
+            if result:
+                self._open_playlist_folder(folder_path)
+                
+        except Exception as e:
+            logger.error(f"Error asking to open folder: {e}")
+    
+    def _open_playlist_folder(self, folder_path: str):
+        """Open the playlist folder in file explorer"""
+        try:
+            from utils import open_directory_safely
+            
+            if open_directory_safely(folder_path):
+                logger.info(f"Opened playlist folder: {folder_path}")
+            else:
+                raise Exception("Tüm yöntemler başarısız oldu")
+                
+        except Exception as e:
+            logger.error(f"Error opening playlist folder: {e}")
+            # Show alternative ways to open the folder
+            error_msg = f"Klasör açılamadı: {folder_path}\n\nAlternatif çözümler:\n1. Windows Explorer'ı açın\n2. Adres çubuğuna şunu yazın:\n{folder_path}\n\n3. Veya şu komutu çalıştırın:\ncmd /c start explorer \"{folder_path}\""
+            messagebox.showerror("Klasör Açılamadı", error_msg)
     
     def _update_playlist_video_status(self, video_index: int, status: str, progress_text: str):
         """Update status of a specific playlist video"""
@@ -1169,7 +1250,7 @@ class StreamScribeOptimizedGUI:
         elif status == "completed":
             status_label.configure(text="✅", text_color=("#4CAF50", "#4CAF50"))  # Green
             progress_label.configure(text="✅")
-            download_btn.configure(state="disabled", text="✅")
+            download_btn.configure(state="disabled", text="✅", fg_color=("#4CAF50", "#4CAF50"))
             # Store status for completion tracking
             video_status['status'] = 'completed'
             
@@ -1181,16 +1262,40 @@ class StreamScribeOptimizedGUI:
             video_status['status'] = 'failed'
     
     def _get_playlist_output_dir(self, playlist_name: str) -> str:
-        """Get playlist-specific output directory"""
-        # Clean playlist name for folder name
+        """Get playlist-specific output directory with date and better naming"""
         import re
+        from datetime import datetime
+        
+        logger.info(f"Creating playlist directory for: {playlist_name}")
+        logger.info(f"Current output directory: {self.output_dir}")
+        
+        # Clean playlist name for folder name
         clean_name = re.sub(r'[<>:"/\\|?*]', '_', playlist_name)
-        clean_name = clean_name.strip()[:50]  # Limit length
+        clean_name = clean_name.strip()[:40]  # Limit length
         
-        playlist_dir = os.path.join(self.output_dir, clean_name)
+        # Add current date and time for better organization
+        current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M")
         
-        # Create directory if it doesn't exist
-        os.makedirs(playlist_dir, exist_ok=True)
+        # Create folder name: PlaylistName_YYYY-MM-DD_HH-MM
+        folder_name = f"{clean_name}_{current_datetime}"
+        
+        playlist_dir = os.path.join(self.output_dir, folder_name)
+        
+        logger.info(f"Attempting to create directory: {playlist_dir}")
+        
+        try:
+            # Create directory if it doesn't exist
+            os.makedirs(playlist_dir, exist_ok=True)
+            
+            # Verify directory was created
+            if os.path.exists(playlist_dir):
+                logger.info(f"Playlist output directory successfully created: {playlist_dir}")
+            else:
+                logger.error(f"Failed to create directory: {playlist_dir}")
+                
+        except Exception as e:
+            logger.error(f"Error creating playlist directory: {e}")
+            raise
         
         return playlist_dir
     
@@ -1242,8 +1347,12 @@ class StreamScribeOptimizedGUI:
         
         # Update UI
         self.download_btn.configure(state="disabled", text="📡 İNDİRİLİYOR...")
-        self.progress_bar.set(0)
-        self.progress_percent.configure(text="0%")
+        
+        # Only reset progress bar if not in bulk download mode
+        if not hasattr(self, 'bulk_download_active') or not self.bulk_download_active:
+            self.progress_bar.set(0)
+            self.progress_percent.configure(text="0%")
+        
         self.status_label.configure(text="İndirme başlatılıyor...")
         self.download_start_time = time.time()
         
@@ -1252,6 +1361,17 @@ class StreamScribeOptimizedGUI:
             self.playlist_download_index = 0
             self.playlist_total_videos = 0
         
+        # If we're in a playlist context, create playlist folder for single video downloads
+        playlist_output_dir = None
+        if self.current_playlist_info:
+            playlist_title = self.current_playlist_info.get('title', 'Playlist')
+            playlist_name = playlist_title.split(' (')[0]
+            try:
+                playlist_output_dir = self._get_playlist_output_dir(playlist_name)
+                logger.info(f"Created playlist folder for single video download: {playlist_output_dir}")
+            except Exception as e:
+                logger.error(f"Failed to create playlist folder for single video: {e}")
+        
         # Get options
         audio_only = self.format_var.get() == "audio"
         max_height = config.get_quality_value(self.quality_var.get())
@@ -1259,6 +1379,11 @@ class StreamScribeOptimizedGUI:
         def download_worker():
             try:
                 logger.info(f"Starting download: {url}")
+                
+                # For single video downloads, don't change output directory to avoid audio issues
+                # Playlist videos work fine because they don't change output directory
+                logger.info(f"Single video download - using default output directory: {self.downloader.output_dir}")
+                
                 success = self.downloader.download(
                     url=url,
                     audio_only=audio_only,
@@ -1333,8 +1458,10 @@ class StreamScribeOptimizedGUI:
                     percent = 1.0
                 
                 # Update progress bar and percentage (use after_idle for better performance)
-                self.root.after_idle(lambda p=percent: self.progress_bar.set(p))
-                self.root.after_idle(lambda p=percent: self.progress_percent.configure(text=f"{p*100:.1f}%"))
+                # But don't update if we're in bulk download mode (let bulk download handle progress)
+                if not hasattr(self, 'bulk_download_active') or not self.bulk_download_active:
+                    self.root.after_idle(lambda p=percent: self.progress_bar.set(p))
+                    self.root.after_idle(lambda p=percent: self.progress_percent.configure(text=f"{p*100:.1f}%"))
                 
                 # Format speed
                 speed = data.get('speed', 0)
@@ -1383,7 +1510,7 @@ class StreamScribeOptimizedGUI:
                 if self.current_playlist_info and self.playlist_download_index > 0:
                     playlist_title = self.current_playlist_info.get('title', 'Playlist')
                     playlist_name = playlist_title.split(' (')[0]  # Remove video count from title
-                    status_text = f"📋 {playlist_name} - {self.playlist_download_index}/{self.playlist_total_videos} videosu | ⬇️ {percent*100:.1f}% | {size_info} | 🚀 {speed_str} | ⏱️ Kalan: {eta_str}"
+                    status_text = f"📋 {playlist_name} - [{self.playlist_download_index}/{self.playlist_total_videos}] videosu | ⬇️ {percent*100:.1f}% | {size_info} | 🚀 {speed_str} | ⏱️ Kalan: {eta_str}"
                 else:
                     status_text = f"⬇️ {percent*100:.1f}% | {size_info} | 🚀 {speed_str} | ⏱️ Kalan: {eta_str} | 🕑 Geçen: {elapsed_str}"
                 
