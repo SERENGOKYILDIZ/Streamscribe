@@ -1,7 +1,23 @@
-yt-dlp>=2023.10.13
-customtkinter>=5.2.0
-Pillow>=10.0.0
-requests>=2.31.0
-moviepy>=1.0.3
-openai-whisper>=20231117
-torch>=2.0.0
+# Core dependencies for YouTube downloader
+customtkinter==5.2.2
+yt-dlp==2025.8.20
+
+# Image processing for thumbnails
+Pillow==10.2.0
+
+# HTTP requests
+requests==2.31.0
+
+# Video processing (for subtitle generation)
+moviepy==1.0.3
+
+# AI/ML for subtitle generation
+openai-whisper==20231117
+torch==2.2.0
+numpy<2
+
+# Development and build tools
+pyinstaller==6.15.0
+
+# Additional utilities
+pathlib2==2.3.7; python_version < "3.4"
