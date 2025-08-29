@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Optimized](https://img.shields.io/badge/Optimized-v2.0-brightgreen.svg)
+![Optimized](https://img.shields.io/badge/Optimized-v2.1-brightgreen.svg)
 
 ## 👨‍💻 Author
 
@@ -37,12 +37,13 @@
 ### 📺 Video Downloading
 - **Download YouTube videos in MP4/MP3 format**
 - **Single video or complete playlist** downloading
-- **Quality selection up to 4K** (360p - 2160p) with **enhanced quality matching**
+- **Quality selection up to 4K** (360p - 2160p) with **aggressive quality enforcement**
 - **Ultra-fast downloading** - Multi-threaded support with optimizations
-- **Automatic format optimization** with better quality selection
+- **Automatic format optimization** with forced quality selection
 - **Local FFmpeg usage** - No installation required on other computers
 - **Bulk download notifications** - Get notified when all videos complete
 - **Progress bar reset** on new video analysis
+- **Real-time quality monitoring** - See selected vs. actual download quality
 
 ### 🎵 Audio Downloading
 - **High-quality MP3** output (192 kbps)
@@ -88,6 +89,7 @@
 - **Performance Monitoring**: Built-in performance tracking
 - **Debug Information**: Comprehensive debugging capabilities
 - **Error Tracking**: Detailed error logging and reporting
+- **Console-Only Logging**: Clean console output without log file creation
 
 #### ⚙️ Configuration Management
 - **Centralized Config**: All settings in one place
@@ -204,8 +206,8 @@ MAX_PLAYLIST_VIDEOS = 50           # Maximum playlist videos
 ### Logging Configuration
 ```python
 # logger.py
-LOG_LEVEL = "INFO"                 # Logging level
-LOG_FILE = "streamscribe.log"      # Log file name
+LOG_LEVEL = "ERROR"                # Logging level (ERROR only for clean console)
+LOG_FILE = "streamscribe.log"      # Log file name (disabled in v2.0.2)
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 ```
 
@@ -371,7 +373,17 @@ These optimizations make StreamScribe significantly faster, more reliable, and m
 
 ## 🔄 Recent Updates
 
-### v2.0.1 (Latest)
+### v2.1 (Latest)
+- ✅ **Major quality improvements** - Aggressive quality enforcement for exe builds
+- ✅ **Console log cleanup** - No more log files, clean console output only
+- ✅ **Real-time quality monitoring** - See selected vs. actual download quality in terminal
+- ✅ **Enhanced format string** - More aggressive quality selection with fallbacks
+- ✅ **YouTube 403 error prevention** - Flexible format selection to avoid restrictions
+- ✅ **Quality threshold optimization** - 1080p → 900p+, 720p → 540p+ minimum
+- ✅ **Format sort enforcement** - Strict quality sorting with codec preferences
+- ✅ **Progress hook improvements** - Better format selection visibility
+
+### v2.0.1
 - ✅ **Enhanced video quality selection** - Better format matching for selected quality
 - ✅ **Progress bar improvements** - Reset functionality and better progress tracking
 - ✅ **Dynamic title switching** - Smart title changes based on content type

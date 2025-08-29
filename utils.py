@@ -427,4 +427,4 @@ def cleanup_resources():
     perf_optimizer.cleanup()
     thread_manager.cleanup_finished_threads()
     progress_tracker.cleanup_old_progress()
-    logger.info("Resource cleanup completed")
+    pass

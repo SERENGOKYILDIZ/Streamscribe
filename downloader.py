@@ -46,7 +46,7 @@ class OptimizedYouTubeDownloader:
         # Ensure output directory exists
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
         
-        logger.info(f"Downloader initialized with output directory: {self.output_dir}")
+        pass
     
     def set_progress_callback(self, callback: Callable):
         """Set callback function for download progress updates"""
@@ -97,6 +97,14 @@ class OptimizedYouTubeDownloader:
                     'eta': 0
                 })
                 
+            elif status == 'info':
+                # Log format selection and quality information
+                info_msg = d.get('message', '')
+                if 'format' in info_msg.lower() or 'resolution' in info_msg.lower():
+                    print(f"🎬 Format Seçimi: {info_msg}")
+                elif 'downloading' in info_msg.lower():
+                    print(f"📥 İndiriliyor: {info_msg}")
+                
         except Exception as e:
             logger.error(f"Progress hook error: {e}")
     
@@ -104,15 +112,21 @@ class OptimizedYouTubeDownloader:
         """Build optimized format string for video quality with audio"""
         try:
             if prefer_mp4:
-                # Simple and reliable format string that guarantees audio
-                return f"bestvideo[height<={max_height}][ext=mp4]+bestaudio[ext=m4a]/best[height<={max_height}][ext=mp4]+bestaudio/best+bestaudio"
+                # Force higher quality - more aggressive selection
+                format_string = f"bestvideo[height>={max_height-180}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height>={max_height-180}]+bestaudio/best[height>={max_height-180}][ext=mp4]+bestaudio/best[height>={max_height-180}]+bestaudio/best+bestaudio"
             else:
-                # For non-MP4 preference, still prioritize height with audio
-                return f"bestvideo[height<={max_height}]+bestaudio/best[height<={max_height}]+bestaudio/best+bestaudio"
+                # Force higher quality - more aggressive selection
+                format_string = f"bestvideo[height>={max_height-180}]+bestaudio/bestvideo[height>={max_height-180}]+bestaudio/best[height>={max_height-180}]+bestaudio/best+bestaudio"
+            
+            print(f"🔍 Oluşturulan Format String: {format_string}")
+            return format_string
+            
         except Exception as e:
             logger.error(f"Format string building error: {e}")
             # Fallback to best format that includes audio - CRITICAL FOR AUDIO
-            return f"best[height<={max_height}]+bestaudio/best+bestaudio"
+            fallback = f"best[height>={max_height-180}]+bestaudio/best+bestaudio"
+            print(f"⚠️ Fallback Format String: {fallback}")
+            return fallback
     
     def _get_optimized_ydl_options(self, audio_only: bool, max_height: int, 
                                  prefer_mp4: bool, no_playlist: bool, 
@@ -134,6 +148,11 @@ class OptimizedYouTubeDownloader:
                 "extractor_retries": 3,
                 "http_chunk_size": 10485760,  # 10MB chunks
                 "merge_output_format": "mp4" if prefer_mp4 else "mkv",
+                # Quality optimization settings - force higher quality
+                "format_sort": ["res", "fps", "codec:h264", "codec:vp9", "codec:av1"],
+                "format_sort_force": True,  # Force strict sorting
+                "prefer_free_formats": False,  # Don't prefer free formats
+                "check_formats": True,  # Enable format checking
             }
             
             if audio_only:
@@ -151,11 +170,11 @@ class OptimizedYouTubeDownloader:
             else:
                 # For video downloads, use enhanced format string with audio guarantee
                 format_string = self._build_format_string(max_height, prefer_mp4)
-                logger.info(f"Generated format string: {format_string}")
+                pass
                 
                 # Add fallback format to ensure audio is always included
                 fallback_format = f"best[height<={max_height}]+bestaudio/best+bestaudio"
-                logger.info(f"Fallback format string: {fallback_format}")
+                pass
                 
                 # Use the generated format string
                 options["format"] = format_string
@@ -182,6 +201,12 @@ class OptimizedYouTubeDownloader:
                 # Ensure video+audio merge
                 options["merge_output_format"] = "mp4" if prefer_mp4 else "mkv"
                 options["prefer_ffmpeg"] = True  # Prefer FFmpeg for processing
+                # Quality enforcement - force higher quality
+                options["format_sort"] = ["res", "fps", "codec:h264", "codec:vp9", "codec:av1"]
+                options["format_sort_force"] = True  # Force strict sorting
+                options["prefer_free_formats"] = False  # Don't prefer free formats
+                options["check_formats"] = True  # Enable format checking
+                options["format_sort_force"] = True  # Force quality selection
             
             if include_subs:
                 langs = [s.strip() for s in sub_langs.split(",") if s.strip()]
@@ -218,8 +243,6 @@ class OptimizedYouTubeDownloader:
         
         try:
             self._is_downloading = True
-            logger.info(f"Starting download: {url}")
-            
             if self.status_callback:
                 self.status_callback("İndirme başlatılıyor...")
             
@@ -229,16 +252,10 @@ class OptimizedYouTubeDownloader:
                 include_subs, sub_langs, auto_subs
             )
             
-            # Log options for debugging
-            logger.info(f"Download options: {ydl_opts}")
-            logger.info(f"Format string: {ydl_opts.get('format', 'N/A')}")
-            logger.info(f"Audio settings - keepvideo: {ydl_opts.get('keepvideo')}, keepaudio: {ydl_opts.get('keepaudio')}")
-            logger.info(f"Audio settings - audioformat: {ydl_opts.get('audioformat')}, audioquality: {ydl_opts.get('audioquality')}")
-            logger.info(f"Audio settings - audio_multistreams: {ydl_opts.get('audio_multistreams')}, audio_preference: {ydl_opts.get('audio_preference')}")
-            logger.info(f"Audio settings - extract_flat: {ydl_opts.get('extract_flat')}, ignore_no_formats_error: {ydl_opts.get('ignore_no_formats_error')}")
-            logger.info(f"FFmpeg path: {self.ffmpeg_path}")
-            logger.info(f"Download type: {'Audio Only' if audio_only else 'Video + Audio'}")
-            logger.info(f"Max height: {max_height}, Prefer MP4: {prefer_mp4}")
+            # Print quality selection info
+            print(f"🎯 Seçilen Kalite: {max_height}p")
+            print(f"📹 Format String: {ydl_opts.get('format', 'N/A')}")
+            print(f"🔧 Format Sort: {ydl_opts.get('format_sort', 'N/A')}")
             
             # Start download
             with YoutubeDL(ydl_opts) as ydl:
@@ -247,7 +264,6 @@ class OptimizedYouTubeDownloader:
             if self.status_callback:
                 self.status_callback("İndirme tamamlandı!")
             
-            logger.info(f"Download completed successfully: {url}")
             return True
             
         except Exception as e:
@@ -279,7 +295,7 @@ class OptimizedYouTubeDownloader:
     def download_async(self, *args, **kwargs) -> threading.Thread:
         """Start download in a separate thread with proper cleanup"""
         if self._download_thread and self._download_thread.is_alive():
-            logger.warning("Previous download thread still running")
+            pass
             return self._download_thread
         
         self._download_thread = threading.Thread(
@@ -348,85 +364,22 @@ class OptimizedYouTubeDownloader:
             return title.strip() if title.strip() else 'Bilinmeyen Video'
             
         except Exception as e:
-            logger.error(f"Title cleaning error: {e}")
+            pass
             return 'Bilinmeyen Video'
     
     def get_video_info_fast(self, url: str) -> Dict[str, Any]:
-        """Get video info using optimized web scraping"""
+        """Get video info using yt-dlp (reliable method)"""
         try:
             # Check cache first
             if url in self._video_info_cache:
-                logger.debug(f"Video info retrieved from cache: {url}")
                 return self._video_info_cache[url]
             
-            # Check if it's a playlist (but not a single video from playlist)
-            if 'list=' in url and 'watch?v=' not in url:
-                return self._get_playlist_info_optimized(url)
+            # Use yt-dlp directly for reliability
+            return self.get_video_info_ytdlp(url)
             
-            # Extract video ID
-            video_id = self._extract_video_id(url)
-            if not video_id:
-                return {'error': 'Geçersiz YouTube URL'}
-            
-            # Get video page with optimized timeout
-            response = self._session.get(
-                f'https://www.youtube.com/watch?v={video_id}', 
-                timeout=config.TIMEOUT_FAST
-            )
-            
-            if response.status_code != 200:
-                return {'error': 'Video sayfası erişilemez'}
-            
-            html = response.text
-            
-            # Extract title using optimized method
-            title = self._extract_title_from_html_optimized(html)
-            
-            if not title or title == 'Bilinmeyen Video':
-                # Fallback to page title
-                title_match = re.search(r'<title>([^<]+)</title>', html)
-                if title_match:
-                    title = title_match.group(1).replace(' - YouTube', '').strip()
-                else:
-                    title = 'Bilinmeyen Video'
-            
-            # Get thumbnail URL
-            thumbnail_url = f'https://img.youtube.com/vi/{video_id}/mqdefault.jpg'
-            
-            # Try higher quality thumbnail
-            maxres_thumb = f'https://img.youtube.com/vi/{video_id}/maxresdefault.jpg'
-            try:
-                thumb_check = self._session.head(maxres_thumb, timeout=0.8)
-                if thumb_check.status_code == 200:
-                    thumbnail_url = maxres_thumb
-            except:
-                pass
-            
-            result = {
-                'title': self._clean_title(title),
-                'thumbnail': thumbnail_url,
-                'video_id': video_id,
-                'is_playlist': False,
-                'method': 'optimized_webscraping'
-            }
-            
-            # Cache the result
-            self._video_info_cache[url] = result
-            
-            # Limit cache size
-            if len(self._video_info_cache) > config.CACHE_SIZE:
-                oldest_key = next(iter(self._video_info_cache))
-                del self._video_info_cache[oldest_key]
-            
-            logger.debug(f"Video info extracted successfully: {title}")
-            return result
-            
-        except requests.RequestException as e:
-            logger.error(f"Request error in get_video_info_fast: {e}")
-            return {'error': 'İnternet bağlantısı sorunu'}
         except Exception as e:
             logger.error(f"Error in get_video_info_fast: {e}")
-            return {'error': f'Web scraping hatası: {str(e)[:30]}...'}
+            return {'error': 'Video bilgisi alınamadı. Lütfen URL\'yi kontrol edin.'}
     
     def _extract_title_from_html_optimized(self, html: str) -> str:
         """Extract video title using optimized JSON parsing"""
@@ -478,7 +431,7 @@ class OptimizedYouTubeDownloader:
             return 'Bilinmeyen Video'
             
         except Exception as e:
-            logger.error(f"Title extraction error: {e}")
+            pass
             return 'Bilinmeyen Video'
     
     def _get_playlist_info_optimized(self, url: str) -> Dict[str, Any]:
@@ -523,7 +476,7 @@ class OptimizedYouTubeDownloader:
             # Cache the result
             self._video_info_cache[url] = result
             
-            logger.debug(f"Playlist info extracted: {title} ({video_count} videos)")
+            pass
             return result
             
         except requests.RequestException as e:
@@ -582,7 +535,7 @@ class OptimizedYouTubeDownloader:
             return ''
             
         except Exception as e:
-            logger.error(f"Playlist title extraction error: {e}")
+            pass
             return ''
     
     def _count_playlist_videos_optimized(self, html: str) -> int:
@@ -603,7 +556,7 @@ class OptimizedYouTubeDownloader:
             return 0
             
         except Exception as e:
-            logger.error(f"Video count extraction error: {e}")
+            pass
             return 0
     
     def _extract_first_video_id(self, html: str) -> str:
@@ -630,7 +583,7 @@ class OptimizedYouTubeDownloader:
         
         # If fast method failed, try yt-dlp fallback
         if 'error' in info:
-            logger.info(f"Fast method failed, trying yt-dlp fallback for: {url}")
+            pass
             return self.get_video_info_ytdlp(url)
         
         return info
@@ -728,8 +681,7 @@ class OptimizedYouTubeDownloader:
                             'thumbnail': f"https://img.youtube.com/vi/{entry.get('id', '')}/mqdefault.jpg"
                         })
                 
-                logger.info(f"Extracted {len(entries)} playlist entries")
-                return entries
+            return entries
                 
         except Exception as e:
             logger.error(f"Playlist entries error: {e}")
@@ -745,7 +697,7 @@ class OptimizedYouTubeDownloader:
             self._video_info_cache.clear()
             self._thumbnail_cache.clear()
             
-            logger.info("Downloader cleanup completed")
+            pass
             
         except Exception as e:
             logger.error(f"Cleanup error: {e}")
