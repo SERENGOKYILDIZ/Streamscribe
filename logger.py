@@ -42,34 +42,12 @@ class StreamScribeLogger:
         
         # Console handler
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.INFO)
+        console_handler.setLevel(logging.ERROR)
         console_handler.setFormatter(formatter)
         self._logger.addHandler(console_handler)
         
-        # File handler with rotation
-        log_file = Path(config.LOG_FILE)
-        log_file.parent.mkdir(exist_ok=True)
-        
-        file_handler = logging.handlers.RotatingFileHandler(
-            log_file,
-            maxBytes=10*1024*1024,  # 10MB
-            backupCount=5,
-            encoding='utf-8'
-        )
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(formatter)
-        self._logger.addHandler(file_handler)
-        
-        # Error file handler
-        error_handler = logging.handlers.RotatingFileHandler(
-            log_file.with_suffix('.error.log'),
-            maxBytes=5*1024*1024,  # 5MB
-            backupCount=3,
-            encoding='utf-8'
-        )
-        error_handler.setLevel(logging.ERROR)
-        error_handler.setFormatter(formatter)
-        self._logger.addHandler(error_handler)
+        # File handlers disabled - no log files will be created
+        # Only console logging is active
     
     def get_logger(self, name: str = None) -> logging.Logger:
         """Get a logger instance"""

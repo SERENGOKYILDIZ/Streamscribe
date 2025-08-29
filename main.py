@@ -14,11 +14,9 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from config import config
-from logger import setup_logging, get_logger, log_info, log_error
+from logger import setup_logging, get_logger, log_error
 from error_handler import ErrorHandler, handle_error
 from utils import cleanup_resources
-
-logger = get_logger('main')
 
 
 def check_dependencies() -> bool:
@@ -27,25 +25,21 @@ def check_dependencies() -> bool:
     
     try:
         import yt_dlp
-        log_info("yt-dlp: OK")
     except ImportError:
         missing_deps.append("yt-dlp")
     
     try:
         import customtkinter
-        log_info("customtkinter: OK")
     except ImportError:
         missing_deps.append("customtkinter")
     
     try:
         import requests
-        log_info("requests: OK")
     except ImportError:
         missing_deps.append("requests")
     
     try:
         from PIL import Image
-        log_info("Pillow: OK")
     except ImportError:
         missing_deps.append("Pillow")
     
@@ -54,7 +48,7 @@ def check_dependencies() -> bool:
         from config import config
         ffmpeg_path = config.get_ffmpeg_path()
         if ffmpeg_path and os.path.exists(ffmpeg_path):
-            log_info(f"FFmpeg: OK ({ffmpeg_path})")
+            pass
         else:
             missing_deps.append("FFmpeg")
             log_error("FFmpeg not found or not accessible")
@@ -75,16 +69,12 @@ def check_dependencies() -> bool:
         
         print("\n💡 Yükleme için: pip install -r requirements.txt")
         return False
-    
-    log_info("All dependencies are available")
     return True
 
 
 def launch_gui():
     """Launch the optimized GUI interface"""
     try:
-        log_info("Launching StreamScribe GUI...")
-        
         # Import GUI after dependency check
         from gui import StreamScribeOptimizedGUI
         
@@ -114,8 +104,6 @@ def launch_gui():
 def launch_legacy_gui():
     """Launch the legacy GUI interface"""
     try:
-        log_info("Launching legacy GUI...")
-        
         from gui import YouTubeDownloaderGUI
         
         print("🚀 StreamScribe Legacy GUI başlatılıyor...")
@@ -132,6 +120,7 @@ def launch_legacy_gui():
         error_msg = f"Legacy GUI başlatma hatası: {str(e)}"
         log_error(error_msg)
         print(f"❌ {error_msg}")
+        print(f"Hata detayı: {type(e).__name__}")
         input("Devam etmek için Enter'a basın...")
         sys.exit(1)
 
@@ -139,8 +128,6 @@ def launch_legacy_gui():
 def test_downloader():
     """Test the downloader functionality"""
     try:
-        log_info("Testing downloader functionality...")
-        
         from downloader import OptimizedYouTubeDownloader
         
         # Test with a simple YouTube URL
@@ -282,7 +269,6 @@ GUI Özellikleri:
         
     except KeyboardInterrupt:
         print("\n\n⚠️ Kullanıcı tarafından iptal edildi")
-        log_info("Application interrupted by user")
         return 0
     except Exception as e:
         error_msg = f"Uygulama hatası: {str(e)}"
@@ -293,7 +279,6 @@ GUI Özellikleri:
     finally:
         # Cleanup resources
         cleanup_resources()
-        log_info("Application shutdown completed")
 
 
 if __name__ == "__main__":

@@ -16,7 +16,7 @@ class Config:
     
     # Application Info
     APP_NAME = "StreamScribe"
-    APP_VERSION = "2.0.1"
+    APP_VERSION = "2.1"
     APP_AUTHOR = "Semi Eren Gökyıldız"
     
     # Performance Settings
@@ -58,7 +58,7 @@ class Config:
     COLOR_THEME = "blue"
     
     # Logging Settings
-    LOG_LEVEL = "INFO"
+    LOG_LEVEL = "ERROR"
     LOG_FILE = "streamscribe.log"
     LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     

@@ -31,7 +31,6 @@ class StreamScribeOptimizedGUI:
     def __init__(self):
         # Setup logging
         setup_logging(config.LOG_LEVEL)
-        logger.info("Initializing StreamScribe GUI")
         
         # Configure CustomTkinter
         ctk.set_appearance_mode(config.THEME_MODE)
@@ -73,8 +72,6 @@ class StreamScribeOptimizedGUI:
         
         # Initialize downloader
         self._setup_downloader()
-        
-        logger.info("GUI initialization completed")
     
     def _center_window(self):
         """Center the window on screen"""
@@ -106,9 +103,9 @@ class StreamScribeOptimizedGUI:
             # Adjust layout for fullscreen
             self._adjust_layout_for_fullscreen()
             
-            logger.info("Window set to maximized (zoomed) mode")
+            pass
         except Exception as e:
-            logger.warning(f"Could not set maximized mode: {e}")
+            pass
             # Fallback to normal window
             try:
                 self.root.geometry(f"{config.WINDOW_WIDTH}x{config.WINDOW_HEIGHT}")
@@ -129,9 +126,9 @@ class StreamScribeOptimizedGUI:
                 # Hide debug elements in maximized mode
                 self._hide_debug_elements()
                 
-                logger.info("Layout adjusted for maximized mode")
+                pass
         except Exception as e:
-            logger.warning(f"Could not adjust layout for maximized mode: {e}")
+            pass
     
     def _update_font_sizes(self, large=False):
         """Update font sizes based on screen mode"""
@@ -165,7 +162,7 @@ class StreamScribeOptimizedGUI:
                 if hasattr(self, 'version_label'):
                     self.version_label.configure(font=ctk.CTkFont(size=10))
         except Exception as e:
-            logger.warning(f"Could not update font sizes: {e}")
+            pass
     
     def _update_panel_widths(self):
         """Update panel widths for fullscreen mode"""
@@ -186,9 +183,9 @@ class StreamScribeOptimizedGUI:
                 self.left_panel.configure(width=left_width)
                 self.right_panel.configure(width=right_width)
                 
-                logger.info(f"Panel widths updated: Left={left_width}, Right={right_width}")
+                pass
         except Exception as e:
-            logger.warning(f"Could not update panel widths: {e}")
+            pass
     
     def _hide_debug_elements(self):
         """Hide debug elements in maximized mode"""
@@ -201,9 +198,8 @@ class StreamScribeOptimizedGUI:
             if hasattr(self, 'debug_label'):
                 self.debug_label.pack_forget()
                 
-            logger.info("Debug elements hidden in maximized mode")
         except Exception as e:
-            logger.warning(f"Could not hide debug elements: {e}")
+            pass
     
     def _set_window_icon(self):
         """Set window icon if available"""
@@ -212,7 +208,7 @@ class StreamScribeOptimizedGUI:
             if icon_path.exists():
                 self.root.iconbitmap(str(icon_path))
         except Exception as e:
-            logger.warning(f"Could not set window icon: {e}")
+            pass
     
     def _create_ui(self):
         """Create the main UI layout"""
@@ -261,15 +257,15 @@ class StreamScribeOptimizedGUI:
                 self._center_window()
                 self.is_fullscreen = False
                 self._restore_normal_layout()
-                logger.info("Exited maximized mode")
+                pass
             else:
                 # Enter maximized mode
                 self.root.state('zoomed')
                 self.is_fullscreen = True
                 self._adjust_layout_for_fullscreen()
-                logger.info("Entered maximized mode")
+                pass
         except Exception as e:
-            logger.warning(f"Could not toggle window mode: {e}")
+            pass
     
     def _exit_fullscreen(self, event=None):
         """Exit maximized mode"""
@@ -284,9 +280,9 @@ class StreamScribeOptimizedGUI:
             # Restore normal layout
             self._restore_normal_layout()
             
-            logger.info("Exited maximized mode")
+            pass
         except Exception as e:
-            logger.warning(f"Could not exit maximized mode: {e}")
+            pass
     
     def _restore_normal_layout(self):
         """Restore normal layout when exiting maximized mode"""
@@ -300,9 +296,9 @@ class StreamScribeOptimizedGUI:
             # Show debug elements again
             self._show_debug_elements()
             
-            logger.info("Normal layout restored")
+            pass
         except Exception as e:
-            logger.warning(f"Could not restore normal layout: {e}")
+            pass
     
     def _show_debug_elements(self):
         """Show debug elements when exiting maximized mode"""
@@ -315,9 +311,9 @@ class StreamScribeOptimizedGUI:
             if hasattr(self, 'debug_label'):
                 self.debug_label.pack(side="bottom", fill="x", padx=8, pady=2)
                 
-            logger.info("Debug elements shown again")
+            pass
         except Exception as e:
-            logger.warning(f"Could not show debug elements: {e}")
+            pass
     
     def _create_header(self, parent):
         """Create header with title and version"""
@@ -638,7 +634,7 @@ class StreamScribeOptimizedGUI:
             self.downloader.set_progress_callback(self._progress_callback)
             self.downloader.set_status_callback(self._status_callback)
             self.downloader.set_error_callback(self._error_callback)
-            logger.info("Downloader setup completed")
+            pass
         except Exception as e:
             logger.error(f"Downloader setup error: {e}")
             messagebox.showerror("Hata", f"Downloader başlatılamadı: {e}")
@@ -673,7 +669,6 @@ class StreamScribeOptimizedGUI:
         
         def analyze_worker():
             try:
-                logger.info(f"Analyzing video: {url}")
                 info = self.downloader.get_video_info_fast(url)
                 self.root.after(0, lambda: self._display_video_info(info))
             except Exception as e:
@@ -751,7 +746,7 @@ class StreamScribeOptimizedGUI:
         
         self.status_label.configure(text="Video analizi tamamlandı - İndirmeye hazır")
         
-        logger.info(f"Video info displayed: {title}")
+        pass
     
     def _load_thumbnail(self, url: str):
         """Load and display thumbnail with caching"""
@@ -785,7 +780,7 @@ class StreamScribeOptimizedGUI:
                     ))
                     
             except Exception as e:
-                logger.error(f"Thumbnail loading error: {e}")
+                pass
         
         threading.Thread(target=load_worker, daemon=True).start()
     
@@ -805,7 +800,6 @@ class StreamScribeOptimizedGUI:
         
         def load_playlist_worker():
             try:
-                logger.info(f"Loading playlist entries: {playlist_url}")
                 entries = self.downloader.get_playlist_entries(playlist_url)
                 
                 self.root.after(0, lambda: self._populate_playlist_list(entries))
@@ -928,7 +922,7 @@ class StreamScribeOptimizedGUI:
         # Auto-analyze the video
         self._analyze_video()
         
-        logger.info(f"Selected video for download: {title}")
+        pass
     
     def _download_playlist_video(self, url: str, title: str, video_index: int):
         """Download a single video from playlist with progress tracking"""
@@ -959,8 +953,6 @@ class StreamScribeOptimizedGUI:
         
         def download_worker():
             try:
-                logger.info(f"Starting playlist video download: {title} ({video_index}/{self.playlist_total_videos})")
-                
                 # Temporarily update downloader output directory
                 original_output_dir = self.downloader.output_dir
                 self.downloader.output_dir = playlist_output_dir
@@ -983,7 +975,7 @@ class StreamScribeOptimizedGUI:
                     self.root.after(0, lambda: self.status_label.configure(
                         text=f"✅ {playlist_name} - {video_index}/{self.playlist_total_videos} videosu tamamlandı"
                     ))
-                    logger.info(f"Playlist video download completed: {title}")
+                    pass
                 else:
                     self.root.after(0, lambda: self.status_label.configure(
                         text=f"❌ {playlist_name} - {video_index}/{self.playlist_total_videos} videosu başarısız"
@@ -1031,7 +1023,7 @@ class StreamScribeOptimizedGUI:
             self._show_error(f"Playlist klasörü oluşturulamadı: {playlist_output_dir}")
             return
         
-        logger.info(f"Playlist directory verified: {playlist_output_dir}")
+        pass
         
         # Store playlist output directory for use in download functions
         self.current_playlist_output_dir = playlist_output_dir
@@ -1047,8 +1039,6 @@ class StreamScribeOptimizedGUI:
         
         # Store initial progress state
         self.initial_progress = 0
-        logger.info(f"Progress bar reset for bulk download. Total videos: {self.bulk_download_total}")
-        logger.info(f"Progress calculation: Each video will add {100/self.bulk_download_total:.1f}% to progress")
         
         # Update status with folder information
         folder_name = os.path.basename(playlist_output_dir)
@@ -1056,8 +1046,6 @@ class StreamScribeOptimizedGUI:
         
         # Start first video download
         self._download_next_playlist_video()
-        
-        logger.info(f"Bulk download started for playlist: {playlist_name} in directory: {playlist_output_dir}")
     
     def _download_next_playlist_video(self):
         """Download next video in playlist sequence"""
@@ -1095,8 +1083,6 @@ class StreamScribeOptimizedGUI:
         
         def download_worker():
             try:
-                logger.info(f"Bulk download: {title} ({self.bulk_download_index + 1}/{self.bulk_download_total})")
-                
                 # Temporarily update downloader output directory
                 original_output_dir = self.downloader.output_dir
                 self.downloader.output_dir = playlist_output_dir
@@ -1135,7 +1121,7 @@ class StreamScribeOptimizedGUI:
                         text=f"📋 Playlist[{self.bulk_download_index + 1}/{self.bulk_download_total}] {percentage}%"
                     ))
                     
-                    logger.info(f"BULK DOWNLOAD PROGRESS: {title} completed - {percentage}% ({self.bulk_download_index + 1}/{self.bulk_download_total})")
+                    pass
                 else:
                     # Update video status to failed
                     self.root.after(0, lambda: self._update_playlist_video_status(
@@ -1196,7 +1182,7 @@ class StreamScribeOptimizedGUI:
             self.progress_bar.set(final_progress_bar)
             self.progress_percent.configure(text=f"📋 Playlist[{completed_count}/{self.bulk_download_total}] {final_progress}%")
         
-        logger.info(f"Bulk download finished. Completed: {completed_count}/{self.bulk_download_total} in directory: {playlist_output_dir}")
+        pass
     
     def _ask_open_playlist_folder(self, folder_path: str, playlist_name: str):
         """Ask user if they want to open the playlist folder"""
@@ -1212,7 +1198,7 @@ class StreamScribeOptimizedGUI:
                 self._open_playlist_folder(folder_path)
                 
         except Exception as e:
-            logger.error(f"Error asking to open folder: {e}")
+            pass
     
     def _open_playlist_folder(self, folder_path: str):
         """Open the playlist folder in file explorer"""
@@ -1220,7 +1206,7 @@ class StreamScribeOptimizedGUI:
             from utils import open_directory_safely
             
             if open_directory_safely(folder_path):
-                logger.info(f"Opened playlist folder: {folder_path}")
+                pass
             else:
                 raise Exception("Tüm yöntemler başarısız oldu")
                 
@@ -1266,9 +1252,6 @@ class StreamScribeOptimizedGUI:
         import re
         from datetime import datetime
         
-        logger.info(f"Creating playlist directory for: {playlist_name}")
-        logger.info(f"Current output directory: {self.output_dir}")
-        
         # Clean playlist name for folder name
         clean_name = re.sub(r'[<>:"/\\|?*]', '_', playlist_name)
         clean_name = clean_name.strip()[:40]  # Limit length
@@ -1281,15 +1264,13 @@ class StreamScribeOptimizedGUI:
         
         playlist_dir = os.path.join(self.output_dir, folder_name)
         
-        logger.info(f"Attempting to create directory: {playlist_dir}")
-        
         try:
             # Create directory if it doesn't exist
             os.makedirs(playlist_dir, exist_ok=True)
             
             # Verify directory was created
             if os.path.exists(playlist_dir):
-                logger.info(f"Playlist output directory successfully created: {playlist_dir}")
+                pass
             else:
                 logger.error(f"Failed to create directory: {playlist_dir}")
                 
@@ -1307,7 +1288,7 @@ class StreamScribeOptimizedGUI:
             self.output_label.configure(text=directory)
             if self.downloader:
                 self.downloader.output_dir = directory
-            logger.info(f"Output directory changed to: {directory}")
+            pass
     
     def _open_output_dir(self):
         """Open output directory in file explorer"""
@@ -1315,7 +1296,7 @@ class StreamScribeOptimizedGUI:
             from utils import open_directory_safely
             
             if open_directory_safely(self.output_dir):
-                logger.info(f"Opened output directory: {self.output_dir}")
+                pass
             else:
                 raise Exception("Tüm yöntemler başarısız oldu")
                 
@@ -1328,7 +1309,7 @@ class StreamScribeOptimizedGUI:
     def _on_format_change(self):
         """Handle format change"""
         format_type = self.format_var.get()
-        logger.info(f"Format changed to: {format_type}")
+        pass
         
         # Update quality options based on format
         if format_type == "audio":
@@ -1368,7 +1349,7 @@ class StreamScribeOptimizedGUI:
             playlist_name = playlist_title.split(' (')[0]
             try:
                 playlist_output_dir = self._get_playlist_output_dir(playlist_name)
-                logger.info(f"Created playlist folder for single video download: {playlist_output_dir}")
+                pass
             except Exception as e:
                 logger.error(f"Failed to create playlist folder for single video: {e}")
         
@@ -1378,12 +1359,6 @@ class StreamScribeOptimizedGUI:
         
         def download_worker():
             try:
-                logger.info(f"Starting download: {url}")
-                
-                # For single video downloads, don't change output directory to avoid audio issues
-                # Playlist videos work fine because they don't change output directory
-                logger.info(f"Single video download - using default output directory: {self.downloader.output_dir}")
-                
                 success = self.downloader.download(
                     url=url,
                     audio_only=audio_only,
@@ -1399,7 +1374,7 @@ class StreamScribeOptimizedGUI:
                     ))
                     self.root.after(0, lambda: self.progress_bar.set(1.0))
                     self.root.after(0, lambda: self.progress_percent.configure(text="100%"))
-                    logger.info("Download completed successfully")
+                    pass
                 else:
                     self.root.after(0, lambda: self.status_label.configure(
                         text="❌ İndirme başarısız"
@@ -1519,7 +1494,7 @@ class StreamScribeOptimizedGUI:
             elif data['status'] == 'finished':
                 self.root.after_idle(lambda: self.progress_bar.set(1.0))
                 self.root.after_idle(lambda: self.progress_percent.configure(text="100%"))
-                logger.info("Download finished, progress bar set to 100%")
+                pass
                 
         except Exception as e:
             logger.error(f"Progress callback error: {e}")
@@ -1537,12 +1512,11 @@ class StreamScribeOptimizedGUI:
         """Show error message"""
         self.status_label.configure(text=f"❌ {error}")
         messagebox.showerror("Hata", error)
-        logger.error(f"Error displayed: {error}")
+        pass
     
     def run(self):
         """Start the application"""
         try:
-            logger.info("Starting StreamScribe GUI")
             self.root.mainloop()
         except Exception as e:
             logger.error(f"GUI runtime error: {e}")
@@ -1554,7 +1528,7 @@ class StreamScribeOptimizedGUI:
         try:
             if self.downloader:
                 self.downloader.cleanup()
-            logger.info("GUI cleanup completed")
+            pass
         except Exception as e:
             logger.error(f"Cleanup error: {e}")
 
