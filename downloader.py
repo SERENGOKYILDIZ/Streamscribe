@@ -61,7 +61,7 @@ class OptimizedYouTubeDownloader:
         self.error_callback = callback
     
     def _progress_hook(self, d: Dict[str, Any]):
-        """Optimized progress hook for yt-dlp"""
+        """Optimized progress hook for yt-dlp with stable size handling"""
         try:
             if not self.progress_callback:
                 return
@@ -69,15 +69,41 @@ class OptimizedYouTubeDownloader:
             status = d.get('status', '')
             
             if status == 'downloading':
-                # Extract progress data efficiently with better fallbacks
+                # Get current progress data
+                downloaded_bytes = d.get('downloaded_bytes', 0)
+                total_bytes = d.get('total_bytes', 0)
+                total_bytes_estimate = d.get('total_bytes_estimate', 0)
+                
+                # Stabilize total size - use the largest stable value
+                if not hasattr(self, '_stable_total_bytes'):
+                    self._stable_total_bytes = 0
+                
+                # Update stable total bytes only if we get a larger, more reliable value
+                current_total = max(total_bytes, total_bytes_estimate)
+                if current_total > self._stable_total_bytes and current_total > 0:
+                    # Only update if the new value is significantly larger (prevents small fluctuations)
+                    if current_total > self._stable_total_bytes * 1.1 or self._stable_total_bytes == 0:
+                        self._stable_total_bytes = current_total
+                
+                # Use stable total bytes for progress calculation
+                final_total = self._stable_total_bytes if self._stable_total_bytes > 0 else current_total
+                
+                # Calculate stable percentage
+                if final_total > 0:
+                    percent = min(100, (downloaded_bytes / final_total) * 100)
+                    percent_str = f"{percent:.1f}%"
+                else:
+                    percent_str = d.get('_percent_str', '0%')
+                
+                # Extract progress data with stable size
                 progress_data = {
                     'status': 'downloading',
-                    '_percent_str': d.get('_percent_str', '0%'),
+                    '_percent_str': percent_str,
                     'speed': d.get('speed', 0),
                     'eta': d.get('eta', 0),
-                    'downloaded_bytes': d.get('downloaded_bytes', 0),
-                    'total_bytes': d.get('total_bytes', 0),
-                    'total_bytes_estimate': d.get('total_bytes_estimate', 0)
+                    'downloaded_bytes': downloaded_bytes,
+                    'total_bytes': final_total,  # Use stable total
+                    'total_bytes_estimate': final_total  # Use stable total
                 }
                 
                 # Log progress data for debugging
@@ -88,6 +114,10 @@ class OptimizedYouTubeDownloader:
             elif status == 'finished':
                 if self.status_callback:
                     self.status_callback("İşleniyor...")
+                
+                # Reset stable total bytes for next download
+                if hasattr(self, '_stable_total_bytes'):
+                    self._stable_total_bytes = 0
                 
                 self.progress_callback({
                     'status': 'finished',
@@ -109,14 +139,15 @@ class OptimizedYouTubeDownloader:
             logger.error(f"Progress hook error: {e}")
     
     def _build_format_string(self, max_height: int, prefer_mp4: bool) -> str:
-        """Build optimized format string for video quality with audio"""
+        """Build flexible format string for video quality with audio"""
         try:
+            # More flexible approach to avoid 403 errors
             if prefer_mp4:
-                # Force higher quality - more aggressive selection
-                format_string = f"bestvideo[height>={max_height-180}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height>={max_height-180}]+bestaudio/best[height>={max_height-180}][ext=mp4]+bestaudio/best[height>={max_height-180}]+bestaudio/best+bestaudio"
+                # Flexible format selection with fallbacks
+                format_string = f"bestvideo[height<={max_height}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={max_height}]+bestaudio/best[height<={max_height}][ext=mp4]+bestaudio/best[height<={max_height}]+bestaudio/best+bestaudio"
             else:
-                # Force higher quality - more aggressive selection
-                format_string = f"bestvideo[height>={max_height-180}]+bestaudio/bestvideo[height>={max_height-180}]+bestaudio/best[height>={max_height-180}]+bestaudio/best+bestaudio"
+                # Flexible format selection with fallbacks
+                format_string = f"bestvideo[height<={max_height}]+bestaudio/bestvideo[height<={max_height}]+bestaudio/best[height<={max_height}]+bestaudio/best+bestaudio"
             
             print(f"🔍 Oluşturulan Format String: {format_string}")
             return format_string
@@ -124,7 +155,7 @@ class OptimizedYouTubeDownloader:
         except Exception as e:
             logger.error(f"Format string building error: {e}")
             # Fallback to best format that includes audio - CRITICAL FOR AUDIO
-            fallback = f"best[height>={max_height-180}]+bestaudio/best+bestaudio"
+            fallback = f"best[height<={max_height}]+bestaudio/best+bestaudio"
             print(f"⚠️ Fallback Format String: {fallback}")
             return fallback
     
@@ -147,12 +178,15 @@ class OptimizedYouTubeDownloader:
                 "fragment_retries": 3,
                 "extractor_retries": 3,
                 "http_chunk_size": 10485760,  # 10MB chunks
+                # Size stabilization options
+                "buffersize": 1024,  # Smaller buffer for more stable progress
+                "sleep_interval": 0.1,  # Faster progress updates
                 "merge_output_format": "mp4" if prefer_mp4 else "mkv",
-                # Quality optimization settings - force higher quality
+                # Quality optimization settings - flexible approach
                 "format_sort": ["res", "fps", "codec:h264", "codec:vp9", "codec:av1"],
-                "format_sort_force": True,  # Force strict sorting
-                "prefer_free_formats": False,  # Don't prefer free formats
-                "check_formats": True,  # Enable format checking
+                "format_sort_force": False,  # More flexible sorting
+                "prefer_free_formats": True,  # Prefer free formats to avoid 403
+                "check_formats": False,  # Disable format checking to avoid 403
             }
             
             if audio_only:
