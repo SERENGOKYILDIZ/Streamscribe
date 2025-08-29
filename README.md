@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Optimized](https://img.shields.io/badge/Optimized-v2.1-brightgreen.svg)
+![Optimized](https://img.shields.io/badge/Optimized-v2.1.1-brightgreen.svg)
 
 ## 👨‍💻 Author
 
@@ -373,7 +373,16 @@ These optimizations make StreamScribe significantly faster, more reliable, and m
 
 ## 🔄 Recent Updates
 
-### v2.1 (Latest)
+### v2.1.1 (Latest)
+- ✅ **Progress bar size stabilization** - Size fluctuations prevented, progress bar shaking resolved
+- ✅ **YouTube 403 Forbidden error fixed** - Format string flexibility increased
+- ✅ **Stable size management** - Size fluctuations filtered with _stable_total_bytes
+- ✅ **Flexible format selection** - height>={max_height-180} → height<={max_height} transition
+- ✅ **yt-dlp options optimization** - format_sort_force: False, prefer_free_formats: True
+- ✅ **Progress hook improvements** - Stable percentage calculation and size management
+- ✅ **Automatic size reset** - Stable size automatically resets for each new download
+
+### v2.1
 - ✅ **Major quality improvements** - Aggressive quality enforcement for exe builds
 - ✅ **Console log cleanup** - No more log files, clean console output only
 - ✅ **Real-time quality monitoring** - See selected vs. actual download quality in terminal

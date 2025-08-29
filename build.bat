@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 >nul
-title StreamScribe Build Script v2.1
+title StreamScribe Build Script v2.1.1
 
 echo.
 echo ========================================
-echo 🚀 StreamScribe Build Script v2.1
+echo 🚀 StreamScribe Build Script v2.1.1
 echo ========================================
 echo.
 
@@ -93,7 +93,7 @@ if errorlevel 1 (
 )
 
 :: Check if build was successful
-if not exist "dist\Streamscribe_v2.1_Standalone.exe" (
+if not exist "dist\Streamscribe_v2.1.1_Standalone.exe" (
     echo.
     echo ❌ Executable oluşturulamadı!
     echo Build süreci tamamlandı ama çıktı dosyası bulunamadı.
@@ -103,14 +103,14 @@ if not exist "dist\Streamscribe_v2.1_Standalone.exe" (
 )
 
 :: Get file size
-for %%A in ("dist\Streamscribe_v2.1_Standalone.exe") do set size=%%~zA
+for %%A in ("dist\Streamscribe_v2.1.1_Standalone.exe") do set size=%%~zA
 set /a size_mb=%size%/1048576
 
 echo.
 echo ✅ Build başarılı!
 echo.
 echo 📊 Build Sonuçları:
-echo    - Executable: dist\Streamscribe_v2.1_Standalone.exe
+echo    - Executable: dist\Streamscribe_v2.1.1_Standalone.exe
 echo    - Boyut: %size_mb% MB
 echo    - Durum: Standalone (Python gerektirmez)
 echo.
@@ -118,7 +118,7 @@ echo.
 :: Test the executable
 echo 🧪 Executable test ediliyor...
 echo    - Versiyon kontrolü...
-dist\Streamscribe_v2.1_Standalone.exe --version >nul 2>&1
+dist\Streamscribe_v2.1.1_Standalone.exe --version >nul 2>&1
 if errorlevel 1 (
     echo ⚠️  Executable test edilemedi (normal olabilir)
 ) else (
@@ -130,7 +130,7 @@ echo.
 echo 🎉 Build tamamlandı!
 echo.
 echo 📁 Çıktı dosyaları:
-echo    - dist\Streamscribe_v2.1_Standalone.exe (Ana uygulama)
+echo    - dist\Streamscribe_v2.1.1_Standalone.exe (Ana uygulama)
 echo    - dist\ klasörü (Tüm gerekli dosyalar)
 echo.
 echo 💡 Kullanım:
@@ -152,6 +152,6 @@ for /d /r . %%d in (__pycache__) do @if exist "%%d" rmdir /s /q "%%d" 2>nul
 echo ✅ Temizlik tamamlandı!
 
 echo.
-echo 🎬 StreamScribe v2.1 build işlemi tamamlandı!
+echo 🎬 StreamScribe v2.1.1 build işlemi tamamlandı!
 echo.
 pause
