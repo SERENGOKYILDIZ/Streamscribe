@@ -371,6 +371,18 @@ class StreamScribeOptimizedGUI:
         self.url_entry.bind("<KeyRelease>", self._on_url_change)
         self.url_entry.bind("<Control-v>", self._on_paste)
         
+        # Right-click menu
+        self.context_menu = tk.Menu(self.root, tearoff=0)
+        self.context_menu.add_command(label="Yapıştır", command=self._paste_from_clipboard)
+        
+        def show_context_menu(event):
+            try:
+                self.context_menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                self.context_menu.grab_release()
+        
+        self.url_entry.bind("<Button-3>", show_context_menu)
+        
         # Analyze button
         self.analyze_btn = ctk.CTkButton(
             url_frame,
@@ -528,8 +540,8 @@ class StreamScribeOptimizedGUI:
         self.progress_percent = ctk.CTkLabel(
             progress_container,
             text="0%",
-            font=ctk.CTkFont(size=11, weight="bold"),
-            text_color=("#2b9348", "#2d5016")
+            font=ctk.CTkFont(size=13, weight="bold"),
+            text_color="white"
         )
         self.progress_percent.pack(anchor="e", pady=(5, 0))
         
@@ -651,6 +663,16 @@ class StreamScribeOptimizedGUI:
     def _on_paste(self, event=None):
         """Handle paste event"""
         self.root.after(100, self._on_url_change)
+
+    def _paste_from_clipboard(self):
+        """Paste text from clipboard to URL entry"""
+        try:
+            text = self.root.clipboard_get()
+            self.url_entry.delete(0, tk.END)
+            self.url_entry.insert(0, text)
+            self._on_url_change()
+        except tk.TclError:
+            pass
     
     def _analyze_video(self):
         """Analyze video and show info"""

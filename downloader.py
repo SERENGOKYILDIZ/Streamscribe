@@ -642,7 +642,7 @@ class OptimizedYouTubeDownloader:
                 'writeautomaticsub': False,
                 'writethumbnail': False,
                 'youtube_include_dash_manifest': False,
-                'format': 'worst',
+
             }
             
             with YoutubeDL(ydl_opts) as ydl:

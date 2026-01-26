@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Optimized](https://img.shields.io/badge/Optimized-v2.1.1-brightgreen.svg)
+![Optimized](https://img.shields.io/badge/Optimized-v2.2.0-brightgreen.svg)
 
 ## 👨‍💻 Author
 
@@ -373,7 +373,13 @@ These optimizations make StreamScribe significantly faster, more reliable, and m
 
 ## 🔄 Recent Updates
 
-### v2.1.1 (Latest)
+### v2.2.0 (Latest)
+- ✅ **Version Bump** - Updated to v2.2.0
+- ✅ **Video Info Fix** - Resolved "Requested format is not available" error by optimizing yt-dlp options
+- ✅ **Right-Click Paste** - Added context menu "Yapıştır" (Paste) to URL input field
+- ✅ **UI Improvements** - Enhanced progress percentage visibility (White color, larger font)
+- ✅ **License** - Added MIT License
+
 - ✅ **Progress bar size stabilization** - Size fluctuations prevented, progress bar shaking resolved
 - ✅ **YouTube 403 Forbidden error fixed** - Format string flexibility increased
 - ✅ **Stable size management** - Size fluctuations filtered with _stable_total_bytes

@@ -12,8 +12,7 @@ import threading
 from typing import Dict, Any, Optional, Callable, List
 from pathlib import Path
 from functools import wraps, lru_cache
-import requests
-from PIL import Image
+
 from io import BytesIO
 
 from config import config
@@ -29,7 +28,7 @@ class PerformanceOptimizer:
         self._cache: Dict[str, Any] = {}
         self._cache_timestamps: Dict[str, float] = {}
         self._cache_lock = threading.Lock()
-        self._session_pool: Dict[str, requests.Session] = {}
+        self._session_pool: Dict[str, Any] = {}
     
     def get_cached_result(self, key: str, max_age: float = 300) -> Optional[Any]:
         """Get cached result if not expired"""
@@ -56,8 +55,14 @@ class PerformanceOptimizer:
                 del self._cache[oldest_key]
                 del self._cache_timestamps[oldest_key]
     
-    def get_session(self, name: str = "default") -> requests.Session:
+    def get_session(self, name: str = "default") -> Any:
         """Get or create a requests session with connection pooling"""
+        try:
+            import requests
+        except ImportError:
+            logger.error("Requests library not found")
+            return None
+
         if name not in self._session_pool:
             session = requests.Session()
             session.headers.update(config.REQUEST_HEADERS)
@@ -147,8 +152,13 @@ class ImageProcessor:
     
     @staticmethod
     @cache_result(max_age=3600)  # Cache for 1 hour
-    def download_and_resize_image(url: str, size: tuple = (280, 160)) -> Optional[Image.Image]:
+    def download_and_resize_image(url: str, size: tuple = (280, 160)) -> Any:
         """Download and resize image with caching"""
+        try:
+            from PIL import Image
+        except ImportError:
+            logger.error("Pillow library not found")
+            return None
         try:
             session = perf_optimizer.get_session("image")
             response = session.get(url, timeout=config.TIMEOUT_FAST)
@@ -166,7 +176,7 @@ class ImageProcessor:
         return None
     
     @staticmethod
-    def create_ctk_image(image: Image.Image, size: tuple) -> Any:
+    def create_ctk_image(image: Any, size: tuple) -> Any:
         """Create CTkImage from PIL Image"""
         try:
             import customtkinter as ctk
