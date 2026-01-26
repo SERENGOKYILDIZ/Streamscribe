@@ -621,16 +621,22 @@ class OptimizedYouTubeDownloader:
             return self.get_video_info_ytdlp(url)
         
         return info
-    
     def get_video_info_ytdlp(self, url: str) -> Dict[str, Any]:
         """Get video info using yt-dlp as fallback"""
         try:
+            # Handle Mix Playlists (RD...) by stripping the list parameter
+            # This forces yt-dlp to treat it as a single video
+            if "list=RD" in url:
+                print("⚠️ Mix Playlist detected (RD...), stripping list parameter")
+                url = re.sub(r'[?&]list=RD[^&]*', '', url)
+                
             ydl_opts = {
                 'quiet': True,
                 'no_warnings': True,
                 'skip_download': True,
                 'no_check_certificate': True,
                 'extract_flat': False,
+                # 'noplaylist': True, # Not needed if list param is removed
                 'ignoreerrors': True,
                 'socket_timeout': config.TIMEOUT_LONG,
                 'retries': 2,
