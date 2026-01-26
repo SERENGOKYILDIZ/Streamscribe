@@ -166,7 +166,7 @@ class OptimizedYouTubeDownloader:
         """Get optimized yt-dlp options"""
         try:
             options = {
-                "outtmpl": os.path.join(self.output_dir, "%(title).200s [%(id)s].%(ext)s"),
+                "outtmpl": os.path.join(self.output_dir, "%(title).200s.%(ext)s"),
                 "progress_hooks": [self._progress_hook],
                 "noplaylist": no_playlist,
                 "quiet": False,

@@ -16,7 +16,7 @@ class Config:
     
     # Application Info
     APP_NAME = "StreamScribe"
-    APP_VERSION = "2.2.0"
+    APP_VERSION = "2.2.1"
     APP_AUTHOR = "Semi Eren Gökyıldız"
     
     # Performance Settings

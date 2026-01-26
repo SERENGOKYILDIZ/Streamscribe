@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Optimized](https://img.shields.io/badge/Optimized-v2.2.0-brightgreen.svg)
+![Optimized](https://img.shields.io/badge/Optimized-v2.2.1-brightgreen.svg)
 
 ## 👨‍💻 Author
 
@@ -373,7 +373,12 @@ These optimizations make StreamScribe significantly faster, more reliable, and m
 
 ## 🔄 Recent Updates
 
-### v2.2.0 (Latest)
+### v2.2.1 (Latest)
+- ✅ **Filename Cleanup** - Removed random Video IDs from downloaded filenames (e.g. "Video Title.mp4")
+- ✅ **Build Fix** - Migrated to Python 3.11 to resolve PyInstaller build issues
+- ✅ **Dependency Update** - Detailed requirements verification
+
+### v2.2.0
 - ✅ **Version Bump** - Updated to v2.2.0
 - ✅ **Video Info Fix** - Resolved "Requested format is not available" error by optimizing yt-dlp options
 - ✅ **Right-Click Paste** - Added context menu "Yapıştır" (Paste) to URL input field
