@@ -1,6 +1,6 @@
 # My special files
-/ffmpeg/*   
-NOT.txt
+/ffmpeg/*
+releases/
 
 # Virtual environments
 /.venv/*

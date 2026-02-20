@@ -14,6 +14,10 @@
 - **GitHub:** [SERENGOKYILDIZ](https://github.com/SERENGOKYILDIZ)
 - **LinkedIn:** [Semi Eren Gökyıldız](https://www.linkedin.com/in/semi-eren-gokyildiz/)
 
+## Downloads
+
+[![Download StreamScribe](https://img.shields.io/badge/Download-StreamScribe_v2.2.1-blue?style=for-the-badge&logo=windows)](https://github.com/SERENGOKYILDIZ/Streamscribe/releases/download/v2.2.1/Streamscribe_v2.2.1_Standalone.exe)
+
 ---
 
 ## 🚀 Features
