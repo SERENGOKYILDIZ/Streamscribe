@@ -438,3 +438,41 @@ def cleanup_resources():
     thread_manager.cleanup_finished_threads()
     progress_tracker.cleanup_old_progress()
     pass
+
+
+def check_ytdlp_update() -> tuple:
+    """Check if a newer version of yt-dlp is available on PyPI.
+    Returns (update_available: bool, installed_version: str, latest_version: str)"""
+    try:
+        import yt_dlp
+        installed_version = yt_dlp.version.__version__
+        
+        session = perf_optimizer.get_session("pypi")
+        response = session.get(
+            "https://pypi.org/pypi/yt-dlp/json",
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            latest_version = data.get("info", {}).get("version", "")
+            
+            if latest_version:
+                # Normalize versions for comparison (e.g. 2026.06.09 vs 2026.6.9)
+                from packaging.version import Version
+                try:
+                    installed_parsed = Version(installed_version)
+                    latest_parsed = Version(latest_version)
+                    if latest_parsed > installed_parsed:
+                        return (True, installed_version, latest_version)
+                except Exception:
+                    # Fallback to string comparison if parsing fails
+                    if latest_version != installed_version:
+                        return (True, installed_version, latest_version)
+            
+            return (False, installed_version, latest_version)
+        
+        return (False, installed_version, "")
+    except Exception as e:
+        logger.debug(f"yt-dlp update check failed: {e}")
+        return (False, "", "")

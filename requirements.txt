@@ -1,6 +1,6 @@
 # Core dependencies for YouTube downloader
 customtkinter==5.2.2
-yt-dlp==2025.8.20
+yt-dlp>=2026.6.1
 
 # Image processing for thumbnails
 Pillow==10.2.0

@@ -71,6 +71,7 @@ Thumbs.db
 
 # Logs
 *.log
+latest_log.txt
 
 # Temporary files
 *.tmp

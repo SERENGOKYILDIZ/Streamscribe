@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Optimized](https://img.shields.io/badge/Optimized-v2.2.1-brightgreen.svg)
+![Optimized](https://img.shields.io/badge/Optimized-v2.2.3-brightgreen.svg)
 
 ## 👨‍💻 Author
 
@@ -16,7 +16,7 @@
 
 ## Downloads
 
-[![Download StreamScribe](https://img.shields.io/badge/Download-StreamScribe_v2.2.1-blue?style=for-the-badge&logo=windows)](https://github.com/SERENGOKYILDIZ/Streamscribe/releases/download/v2.2.1/Streamscribe_v2.2.1_Standalone.exe)
+[![Download StreamScribe](https://img.shields.io/badge/Download-StreamScribe_v2.2.3-blue?style=for-the-badge&logo=windows)](https://github.com/SERENGOKYILDIZ/Streamscribe/releases/download/v2.2.3/Streamscribe_v2.2.3_Standalone.exe)
 
 ---
 
@@ -94,6 +94,7 @@
 - **Debug Information**: Comprehensive debugging capabilities
 - **Error Tracking**: Detailed error logging and reporting
 - **Console-Only Logging**: Clean console output without log file creation
+- **Session Log Export**: Automatic `latest_log.txt` export on app shutdown for easy debugging
 
 #### ⚙️ Configuration Management
 - **Centralized Config**: All settings in one place
@@ -231,6 +232,7 @@ StreamScribe/
 ├── test_optimizations.py      # Test suite
 ├── test_progress.py           # Progress bar testing
 ├── requirements.txt           # Updated dependencies
+├── latest_log.txt             # Last session log (auto-generated)
 ├── downloads/                 # Downloaded files
 ├── ffmpeg/                    # Built-in FFmpeg binaries
 ├── logo/                      # Application icons
@@ -377,7 +379,14 @@ These optimizations make StreamScribe significantly faster, more reliable, and m
 
 ## 🔄 Recent Updates
 
-### v2.2.1 (Latest)
+### v2.2.3 (Latest)
+- ✅ **Session Log Export** - Automatic `latest_log.txt` generation on app shutdown
+- ✅ **yt-dlp Upgrade** - Updated from v2026.3.17 to v2026.6.9 for better YouTube compatibility
+- ✅ **Video Info Fix** - Fixed "Video bilgisi alınamadı" error with retry logic and multiple player clients
+- ✅ **Browser Cookie Support** - Auto-retry with browser cookies for age-restricted videos
+- ✅ **Enhanced Error Messages** - More detailed and actionable error messages
+
+### v2.2.1
 - ✅ **Filename Cleanup** - Removed random Video IDs from downloaded filenames (e.g. "Video Title.mp4")
 - ✅ **Build Fix** - Migrated to Python 3.11 to resolve PyInstaller build issues
 - ✅ **Dependency Update** - Detailed requirements verification

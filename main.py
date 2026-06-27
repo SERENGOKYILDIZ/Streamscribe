@@ -58,16 +58,16 @@ def check_dependencies() -> bool:
     
     if missing_deps:
         log_error(f"Missing dependencies: {', '.join(missing_deps)}")
-        print("❌ Eksik bağımlılıklar tespit edildi:")
+        print("Missing dependencies detected:")
         for dep in missing_deps:
             print(f"   - {dep}")
         
         if "FFmpeg" in missing_deps:
-            print("\n⚠️ FFmpeg bulunamadı!")
-            print("   FFmpeg olmadan video işleme yapılamaz.")
-            print("   Lütfen ffmpeg/ klasörünün mevcut olduğundan emin olun.")
+            print("\nFFmpeg not found!")
+            print("   Video processing cannot be done without FFmpeg.")
+            print("   Please ensure the ffmpeg/ folder exists.")
         
-        print("\n💡 Yükleme için: pip install -r requirements.txt")
+        print("\nTo install: pip install -r requirements.txt")
         return False
     return True
 
@@ -78,26 +78,26 @@ def launch_gui():
         # Import GUI after dependency check
         from gui import StreamScribeOptimizedGUI
         
-        print("🚀 StreamScribe GUI başlatılıyor...")
+        print("Starting StreamScribe GUI...")
         app = StreamScribeOptimizedGUI()
         app.run()
         
     except ImportError as e:
-        error_msg = f"GUI kütüphaneleri eksik: {e}"
+        error_msg = f"Missing GUI libraries: {e}"
         log_error(error_msg)
-        print(f"❌ Hata: {error_msg}")
-        print("💡 Yükleme için: pip install -r requirements.txt")
-        input("Devam etmek için Enter'a basın...")
+        print(f"Error: {error_msg}")
+        print("To install: pip install -r requirements.txt")
+        input("Press Enter to continue...")
         sys.exit(1)
     except Exception as e:
-        error_msg = f"GUI başlatma hatası: {str(e)}"
+        error_msg = f"GUI launch error: {str(e)}"
         log_error(error_msg)
-        print(f"❌ {error_msg}")
-        print(f"Hata detayı: {type(e).__name__}")
+        print(f"Error: {error_msg}")
+        print(f"Error detail: {type(e).__name__}")
         import traceback
-        print("\nTam hata detayı:")
+        print("\nFull error detail:")
         traceback.print_exc()
-        input("Devam etmek için Enter'a basın...")
+        input("Press Enter to continue...")
         sys.exit(1)
 
 
@@ -106,20 +106,20 @@ def launch_legacy_gui():
     try:
         from gui import YouTubeDownloaderGUI
         
-        print("🚀 StreamScribe Legacy GUI başlatılıyor...")
+        print("Starting StreamScribe Legacy GUI...")
         app = YouTubeDownloaderGUI()
         app.run()
         
     except ImportError as e:
-        error_msg = f"Legacy GUI kütüphaneleri eksik: {e}"
+        error_msg = f"Missing legacy GUI libraries: {e}"
         log_error(error_msg)
-        print(f"❌ Hata: {error_msg}")
-        input("Devam etmek için Enter'a basın...")
+        print(f"Error: {error_msg}")
+        input("Press Enter to continue...")
         sys.exit(1)
     except Exception as e:
-        error_msg = f"Legacy GUI başlatma hatası: {str(e)}"
+        error_msg = f"Legacy GUI launch error: {str(e)}"
         log_error(error_msg)
-        print(f"❌ {error_msg}")
+        print(f"Error: {error_msg}")
         print(f"Hata detayı: {type(e).__name__}")
         input("Devam etmek için Enter'a basın...")
         sys.exit(1)
@@ -135,20 +135,20 @@ def test_downloader():
         
         downloader = OptimizedYouTubeDownloader()
         
-        print("🔍 Test video bilgisi alınıyor...")
+        print("Getting test video info...")
         info = downloader.get_video_info_fast(test_url)
         
         if 'error' in info:
-            print(f"❌ Test başarısız: {info['error']}")
+            print(f"Test failed: {info['error']}")
             return False
         else:
-            print(f"✅ Test başarılı: {info.get('title', 'Bilinmeyen')}")
+            print(f"Test successful: {info.get('title', 'Unknown')}")
             return True
             
     except Exception as e:
-        error_msg = f"Downloader test hatası: {str(e)}"
+        error_msg = f"Downloader test error: {str(e)}"
         log_error(error_msg)
-        print(f"❌ {error_msg}")
+        print(f"Error: {error_msg}")
         return False
 
 
@@ -228,25 +228,25 @@ GUI Özellikleri:
     
     # Show header
     print("="*60)
-    print(f"🎬 {config.APP_NAME} - YouTube Video İndirici v{config.APP_VERSION}")
-    print("📺 YouTube videolarını MP4/MP3 olarak indir")
-    print("🚀 Optimize edilmiş performans ve modern arayüz")
+    print(f"{config.APP_NAME} - YouTube Video İndirici v{config.APP_VERSION}")
+    print("YouTube videolarını MP4/MP3 olarak indir")
+    print("Optimize edilmiş performans ve modern arayüz")
     print("="*60)
     
     try:
         # Handle different commands
         if args.check_deps:
-            print("🔍 Bağımlılıklar kontrol ediliyor...")
+            print("Checking dependencies...")
             if check_dependencies():
-                print("✅ Tüm bağımlılıklar mevcut!")
+                print("All dependencies are present!")
                 return 0
             else:
                 return 1
         
         if args.test:
-            print("🧪 Downloader test ediliyor...")
+            print("Testing downloader...")
             if test_downloader():
-                print("✅ Test başarılı!")
+                print("Test successful!")
                 return 0
             else:
                 return 1
@@ -268,15 +268,19 @@ GUI Özellikleri:
         return 0
         
     except KeyboardInterrupt:
-        print("\n\n⚠️ Kullanıcı tarafından iptal edildi")
+        print("\n\nCancelled by user")
         return 0
     except Exception as e:
-        error_msg = f"Uygulama hatası: {str(e)}"
+        error_msg = f"Application error: {str(e)}"
         log_error(error_msg)
-        print(f"\n❌ {error_msg}")
-        print("Lütfen log dosyasını kontrol edin veya uygulamayı yeniden başlatın.")
+        print(f"\n{error_msg}")
+        print("Please check the log file or restart the application.")
         return 1
     finally:
+        # Export latest log before cleanup
+        from logger import export_latest_log
+        export_latest_log()
+        
         # Cleanup resources
         cleanup_resources()
 

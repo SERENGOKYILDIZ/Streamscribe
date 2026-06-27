@@ -72,6 +72,9 @@ class StreamScribeOptimizedGUI:
         
         # Initialize downloader
         self._setup_downloader()
+        
+        # Check for yt-dlp updates in background (after 2 seconds)
+        self.root.after(2000, self._check_ytdlp_update)
     
     def _center_window(self):
         """Center the window on screen"""
@@ -651,6 +654,32 @@ class StreamScribeOptimizedGUI:
             logger.error(f"Downloader setup error: {e}")
             messagebox.showerror("Hata", f"Downloader başlatılamadı: {e}")
     
+    def _check_ytdlp_update(self):
+        """Check for yt-dlp updates in background and show popup if available"""
+        def check_worker():
+            try:
+                from utils import check_ytdlp_update
+                update_available, installed, latest = check_ytdlp_update()
+                
+                if update_available:
+                    self.root.after(0, lambda: self._show_ytdlp_update_popup(installed, latest))
+            except Exception as e:
+                logger.debug(f"yt-dlp update check error: {e}")
+        
+        threading.Thread(target=check_worker, daemon=True).start()
+    
+    def _show_ytdlp_update_popup(self, installed: str, latest: str):
+        """Show popup informing user about yt-dlp update"""
+        messagebox.showinfo(
+            "🔄 yt-dlp Güncellemesi Mevcut",
+            f"Yeni bir yt-dlp sürümü mevcut!\n\n"
+            f"Mevcut sürüm:  {installed}\n"
+            f"Yeni sürüm:      {latest}\n\n"
+            f"Güncellemek için terminalde çalıştırın:\n"
+            f"pip install --upgrade yt-dlp\n\n"
+            f"Güncelleme, video indirme sorunlarını çözebilir."
+        )
+    
     def _on_url_change(self, event=None):
         """Handle URL entry changes"""
         url = self.url_entry.get().strip()
@@ -681,20 +710,28 @@ class StreamScribeOptimizedGUI:
             messagebox.showerror("Hata", "Lütfen bir YouTube URL'si girin!")
             return
         
-        # Reset progress bar and status for new analysis (but preserve if bulk download is active)
+        logger.info(f"Analyzing URL: {url}")
+        
+        # Reset progress bar and status for new analysis
         if not hasattr(self, 'bulk_download_active') or not self.bulk_download_active:
             self.progress_bar.set(0)
             self.progress_percent.configure(text="0%")
-        self.status_label.configure(text="Video bilgileri alınıyor...")
         
+        # Immediate UI feedback
+        self.status_label.configure(text="Video bilgileri alınıyor...")
         self.analyze_btn.configure(state="disabled", text="🔄 Analiz Ediliyor...")
+        
+        # Force UI update to show the changes immediately
+        self.root.update()
         
         def analyze_worker():
             try:
+                logger.debug("Analysis worker started")
                 info = self.downloader.get_video_info_fast(url)
+                logger.debug(f"Analysis complete: {info.get('title', 'Unknown')}")
                 self.root.after(0, lambda: self._display_video_info(info))
             except Exception as e:
-                logger.error(f"Video analysis error: {e}")
+                logger.exception(f"Video analysis error: {e}")
                 self.root.after(0, lambda: self._show_error(f"Analiz hatası: {str(e)}"))
             finally:
                 self.root.after(0, lambda: self.analyze_btn.configure(
@@ -1550,6 +1587,11 @@ class StreamScribeOptimizedGUI:
         try:
             if self.downloader:
                 self.downloader.cleanup()
+            
+            # Export latest log on shutdown
+            from logger import export_latest_log
+            export_latest_log()
+            
             pass
         except Exception as e:
             logger.error(f"Cleanup error: {e}")

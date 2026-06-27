@@ -131,9 +131,9 @@ class OptimizedYouTubeDownloader:
                 # Log format selection and quality information
                 info_msg = d.get('message', '')
                 if 'format' in info_msg.lower() or 'resolution' in info_msg.lower():
-                    print(f"🎬 Format Seçimi: {info_msg}")
+                    print(f"Format Selection: {info_msg}")
                 elif 'downloading' in info_msg.lower():
-                    print(f"📥 İndiriliyor: {info_msg}")
+                    print(f"Downloading: {info_msg}")
                 
         except Exception as e:
             logger.error(f"Progress hook error: {e}")
@@ -149,14 +149,14 @@ class OptimizedYouTubeDownloader:
                 # Flexible format selection with fallbacks
                 format_string = f"bestvideo[height<={max_height}]+bestaudio/bestvideo[height<={max_height}]+bestaudio/best[height<={max_height}]+bestaudio/best+bestaudio"
             
-            print(f"🔍 Oluşturulan Format String: {format_string}")
+            print(f"Generated Format String: {format_string}")
             return format_string
             
         except Exception as e:
             logger.error(f"Format string building error: {e}")
             # Fallback to best format that includes audio - CRITICAL FOR AUDIO
             fallback = f"best[height<={max_height}]+bestaudio/best+bestaudio"
-            print(f"⚠️ Fallback Format String: {fallback}")
+            print(f"Fallback Format String: {fallback}")
             return fallback
     
     def _get_optimized_ydl_options(self, audio_only: bool, max_height: int, 
@@ -287,9 +287,9 @@ class OptimizedYouTubeDownloader:
             )
             
             # Print quality selection info
-            print(f"🎯 Seçilen Kalite: {max_height}p")
-            print(f"📹 Format String: {ydl_opts.get('format', 'N/A')}")
-            print(f"🔧 Format Sort: {ydl_opts.get('format_sort', 'N/A')}")
+            print(f"Selected Quality: {max_height}p")
+            print(f"Format String: {ydl_opts.get('format', 'N/A')}")
+            print(f"Format Sort: {ydl_opts.get('format_sort', 'N/A')}")
             
             # Start download
             with YoutubeDL(ydl_opts) as ydl:
@@ -402,18 +402,38 @@ class OptimizedYouTubeDownloader:
             return 'Bilinmeyen Video'
     
     def get_video_info_fast(self, url: str) -> Dict[str, Any]:
-        """Get video info using yt-dlp (reliable method)"""
+        """Get video info using yt-dlp (reliable method) with retry"""
         try:
             # Check cache first
             if url in self._video_info_cache:
-                return self._video_info_cache[url]
+                cached = self._video_info_cache[url]
+                if 'error' not in cached:
+                    return cached
             
-            # Use yt-dlp directly for reliability
-            return self.get_video_info_ytdlp(url)
+            # Use yt-dlp directly for reliability with retry
+            last_error = None
+            for attempt in range(3):
+                try:
+                    result = self.get_video_info_ytdlp(url, attempt=attempt)
+                    if 'error' not in result:
+                        # Cache successful results
+                        self._video_info_cache[url] = result
+                        return result
+                    last_error = result.get('error', 'Bilinmeyen hata')
+                    logger.warning(f"Video info attempt {attempt + 1}/3 failed: {last_error}")
+                except Exception as e:
+                    last_error = str(e)
+                    logger.warning(f"Video info attempt {attempt + 1}/3 exception: {e}")
+                
+                # Wait before retry with exponential backoff
+                if attempt < 2:
+                    time.sleep(1.5 * (attempt + 1))
+            
+            return {'error': last_error or 'Video bilgisi alınamadı. Lütfen URL\'yi kontrol edin.'}
             
         except Exception as e:
             logger.error(f"Error in get_video_info_fast: {e}")
-            return {'error': 'Video bilgisi alınamadı. Lütfen URL\'yi kontrol edin.'}
+            return {'error': f'Video bilgisi alınamadı: {str(e)[:80]}'}
     
     def _extract_title_from_html_optimized(self, html: str) -> str:
         """Extract video title using optimized JSON parsing"""
@@ -611,23 +631,15 @@ class OptimizedYouTubeDownloader:
             return ''
     
     def get_video_info(self, url: str) -> Dict[str, Any]:
-        """Get video information with fallback"""
-        # Try fast method first
-        info = self.get_video_info_fast(url)
-        
-        # If fast method failed, try yt-dlp fallback
-        if 'error' in info:
-            pass
-            return self.get_video_info_ytdlp(url)
-        
-        return info
-    def get_video_info_ytdlp(self, url: str) -> Dict[str, Any]:
-        """Get video info using yt-dlp as fallback"""
+        """Get video information - delegates to get_video_info_fast which includes retry"""
+        return self.get_video_info_fast(url)
+    def get_video_info_ytdlp(self, url: str, attempt: int = 0) -> Dict[str, Any]:
+        """Get video info using yt-dlp with progressive fallback strategies"""
         try:
             # Handle Mix Playlists (RD...) by stripping the list parameter
             # This forces yt-dlp to treat it as a single video
             if "list=RD" in url:
-                print("⚠️ Mix Playlist detected (RD...), stripping list parameter")
+                logger.info("Mix Playlist detected (RD...), stripping list parameter")
                 url = re.sub(r'[?&]list=RD[^&]*', '', url)
                 
             ydl_opts = {
@@ -636,11 +648,11 @@ class OptimizedYouTubeDownloader:
                 'skip_download': True,
                 'no_check_certificate': True,
                 'extract_flat': False,
-                # 'noplaylist': True, # Not needed if list param is removed
                 'ignoreerrors': True,
-                'socket_timeout': config.TIMEOUT_LONG,
-                'retries': 2,
-                'fragment_retries': 1,
+                'socket_timeout': config.TIMEOUT_LONG + (attempt * 5),
+                'retries': 3,
+                'fragment_retries': 2,
+                'extractor_retries': 3,
                 'no_call_home': True,
                 'simulate': True,
                 'writeinfojson': False,
@@ -648,46 +660,89 @@ class OptimizedYouTubeDownloader:
                 'writeautomaticsub': False,
                 'writethumbnail': False,
                 'youtube_include_dash_manifest': False,
-
+                # Use embedded client to bypass throttling
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['web', 'android', 'ios'],
+                    }
+                },
             }
+            
+            # On retry attempts, try progressively more aggressive options
+            if attempt >= 1:
+                # Try with browser cookies for authentication
+                for browser in ['chrome', 'firefox', 'edge', 'brave']:
+                    try:
+                        ydl_opts['cookiesfrombrowser'] = (browser,)
+                        logger.info(f"Attempting with {browser} cookies (attempt {attempt + 1})")
+                        break
+                    except Exception:
+                        continue
+            
+            if attempt >= 2:
+                # Most permissive settings on final attempt
+                ydl_opts['socket_timeout'] = 30
+                ydl_opts['retries'] = 5
+                ydl_opts['extractor_args'] = {
+                    'youtube': {
+                        'player_client': ['web', 'mweb', 'android', 'ios'],
+                    }
+                }
+                logger.info(f"Final attempt with extended timeout and all player clients")
             
             with YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 
                 if not info:
-                    return {'error': 'Video bilgisi alınamadı'}
+                    logger.warning(f"yt-dlp returned None for URL: {url}")
+                    return {'error': 'Video bilgisi alınamadı. Video silinmiş veya kısıtlı olabilir.'}
                 
                 # Check if it's a playlist
                 is_playlist = 'entries' in info and info['entries']
                 
                 if is_playlist:
-                    first_entry = info['entries'][0] if info['entries'] else {}
-                    playlist_count = len(info['entries'])
-                    return {
+                    entries = [e for e in info['entries'] if e is not None]
+                    first_entry = entries[0] if entries else {}
+                    playlist_count = len(entries)
+                    result = {
                         'title': f"{info.get('title', 'Playlist')} ({playlist_count} video)",
                         'thumbnail': first_entry.get('thumbnail', ''),
                         'is_playlist': True,
                         'playlist_count': playlist_count,
                         'method': 'yt-dlp'
                     }
+                    logger.info(f"Playlist info retrieved: {result['title']}")
+                    return result
                 else:
-                    return {
+                    result = {
                         'title': info.get('title', 'Bilinmiyor'),
                         'thumbnail': info.get('thumbnail', ''),
                         'is_playlist': False,
                         'method': 'yt-dlp'
                     }
+                    logger.info(f"Video info retrieved: {result['title']}")
+                    return result
                     
         except Exception as e:
             error_msg = str(e)
+            logger.error(f"get_video_info_ytdlp error (attempt {attempt + 1}): {error_msg}")
+            
             if "timeout" in error_msg.lower():
-                return {'error': 'Bağlantı zaman aşımı'}
-            elif "not available" in error_msg.lower():
-                return {'error': 'Video bulunamadı'}
+                return {'error': 'Bağlantı zaman aşımı. İnternet bağlantınızı kontrol edin.'}
+            elif "not available" in error_msg.lower() or "unavailable" in error_msg.lower():
+                return {'error': 'Video bulunamadı veya kaldırılmış.'}
             elif "private" in error_msg.lower():
-                return {'error': 'Video özel veya kısıtlı'}
+                return {'error': 'Video özel veya kısıtlı.'}
+            elif "sign in" in error_msg.lower() or "login" in error_msg.lower():
+                return {'error': 'Bu video için giriş yapılması gerekiyor.'}
+            elif "geo" in error_msg.lower() or "country" in error_msg.lower():
+                return {'error': 'Bu video bölgenizde kullanılamıyor.'}
+            elif "copyright" in error_msg.lower() or "blocked" in error_msg.lower():
+                return {'error': 'Video telif hakkı nedeniyle engellenmiş.'}
+            elif "429" in error_msg or "too many" in error_msg.lower():
+                return {'error': 'Çok fazla istek gönderildi. Lütfen biraz bekleyin.'}
             else:
-                return {'error': f'Hata: {error_msg[:50]}...'}
+                return {'error': f'Video bilgisi alınamadı: {error_msg[:80]}'}
     
     def get_playlist_entries(self, url: str) -> List[Dict[str, Any]]:
         """Get detailed playlist entries for selection"""
@@ -698,9 +753,15 @@ class OptimizedYouTubeDownloader:
                 'skip_download': True,
                 'extract_flat': True,
                 'ignoreerrors': True,
-                'socket_timeout': config.TIMEOUT_LONG,
-                'retries': 2,
+                'socket_timeout': config.TIMEOUT_LONG + 5,
+                'retries': 3,
+                'extractor_retries': 3,
                 'no_call_home': True,
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['web', 'android', 'ios'],
+                    }
+                },
             }
             
             with YoutubeDL(ydl_opts) as ydl:
