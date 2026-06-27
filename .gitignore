@@ -72,6 +72,7 @@ Thumbs.db
 # Logs
 *.log
 latest_log.txt
+build_output.log
 
 # Temporary files
 *.tmp
