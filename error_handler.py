@@ -97,13 +97,13 @@ class FileError(StreamScribeError):
         )
 
 
-class PermissionError(StreamScribeError):
+class StreamScribePermissionError(StreamScribeError):
     """Permission-related errors"""
-    
+
     def __init__(self, message: str, original_error: Optional[Exception] = None):
         super().__init__(
-            message, 
-            ErrorType.PERMISSION, 
+            message,
+            ErrorType.PERMISSION,
             original_error,
             "İzin hatası. Lütfen yönetici olarak çalıştırmayı deneyin."
         )
@@ -167,7 +167,7 @@ class ErrorHandler:
         
         # Permission errors
         if any(keyword in error_str for keyword in ['permission', 'access', 'denied', 'forbidden']):
-            return PermissionError(str(error), error)
+            return StreamScribePermissionError(str(error), error)
         
         # GUI errors
         if any(keyword in error_type for keyword in ['tkinter', 'gui', 'widget']):

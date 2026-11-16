@@ -38,7 +38,7 @@ class StreamScribeOptimizedGUI:
         
         # Create main window
         self.root = ctk.CTk()
-        self.root.title(f"{config.APP_NAME} - YouTube Video İndirici")
+        self.root.title(f"{config.APP_NAME} - Video İndirici")
         self.root.geometry(f"{config.WINDOW_WIDTH}x{config.WINDOW_HEIGHT}")
         self.root.minsize(config.MIN_WINDOW_WIDTH, config.MIN_WINDOW_HEIGHT)
         
@@ -336,7 +336,7 @@ class StreamScribeOptimizedGUI:
         # Subtitle
         self.subtitle_label = ctk.CTkLabel(
             header_frame,
-            text="YouTube Video İndirici",
+            text="YouTube / Udemy Video İndirici",
             font=ctk.CTkFont(size=12),
             text_color=("#cccccc", "#cccccc")
         )
@@ -358,15 +358,15 @@ class StreamScribeOptimizedGUI:
         url_frame.pack(fill="x", padx=15, pady=15)
         
         url_label = ctk.CTkLabel(
-            url_frame, 
-            text="YouTube URL:", 
+            url_frame,
+            text="Video URL (YouTube / Udemy):",
             font=ctk.CTkFont(size=14, weight="bold")
         )
         url_label.pack(anchor="w", padx=15, pady=(15, 5))
-        
+
         self.url_entry = ctk.CTkEntry(
             url_frame,
-            placeholder_text="https://www.youtube.com/watch?v=...",
+            placeholder_text="https://www.youtube.com/watch?v=... veya https://www.udemy.com/course/.../learn/lecture/...",
             height=35,
             font=ctk.CTkFont(size=12)
         )
@@ -396,7 +396,77 @@ class StreamScribeOptimizedGUI:
             state="disabled"
         )
         self.analyze_btn.pack(pady=(0, 15))
-        
+
+        # Cookie / login source for sites that require authentication (e.g. Udemy)
+        cookie_frame = ctk.CTkFrame(url_frame, fg_color="transparent")
+        cookie_frame.pack(fill="x", padx=15, pady=(0, 15))
+
+        cookie_label = ctk.CTkLabel(
+            cookie_frame,
+            text="🍪 Giriş Gerekli Siteler (Udemy vb.):",
+            font=ctk.CTkFont(size=11, weight="bold")
+        )
+        cookie_label.pack(anchor="w")
+
+        self.cookie_browser_var = ctk.StringVar(value="Kapalı")
+        cookie_menu = ctk.CTkOptionMenu(
+            cookie_frame,
+            values=["Kapalı", "🔑 Kullanıcı Adı/Şifre", "✂️ Çerez Başlığını Yapıştır (DevTools)",
+                    "Chrome", "Firefox", "Edge", "Brave", "📄 Çerez Dosyası (.txt) Seç..."],
+            variable=self.cookie_browser_var,
+            height=26,
+            font=ctk.CTkFont(size=10),
+            dropdown_font=ctk.CTkFont(size=10),
+            command=self._on_cookie_browser_change
+        )
+        cookie_menu.pack(fill="x", pady=(4, 4))
+
+        # Username/password fields (only shown when that option is selected)
+        self.credentials_frame = ctk.CTkFrame(cookie_frame, fg_color="transparent")
+
+        self.login_username_entry = ctk.CTkEntry(
+            self.credentials_frame,
+            placeholder_text="E-posta / Kullanıcı Adı",
+            height=26,
+            font=ctk.CTkFont(size=10)
+        )
+        self.login_username_entry.pack(fill="x", pady=(2, 2))
+
+        self.login_password_entry = ctk.CTkEntry(
+            self.credentials_frame,
+            placeholder_text="Şifre",
+            show="*",
+            height=26,
+            font=ctk.CTkFont(size=10)
+        )
+        self.login_password_entry.pack(fill="x", pady=(0, 2))
+
+        self.cookie_file_label = ctk.CTkLabel(
+            cookie_frame,
+            text="",
+            font=ctk.CTkFont(size=9),
+            text_color=("#4CAF50", "#4CAF50"),
+            justify="left",
+            anchor="w"
+        )
+        self.cookie_file_label.pack(anchor="w")
+
+        cookie_note = ctk.CTkLabel(
+            cookie_frame,
+            text="Kullanıcı adı/şifre Udemy'nin bot korumasına takılırsa (403 hatası), en güvenilir\n"
+                 "yöntem \"✂️ Çerez Başlığını Yapıştır\": kendi tarayıcınızda normal giriş yapıp\n"
+                 "DevTools'tan (F12) o oturumun çerezini kopyalayıp yapıştırıyorsunuz - hiçbir\n"
+                 "otomasyon/bot-koruması atlatma girişimi yok, kendi gerçek oturumunuz kullanılıyor.\n"
+                 "Tarayıcı çerezi seçeneklerinde: seçilen tarayıcı tamamen kapalı olmalı; yine de\n"
+                 "Chrome/Edge/Brave'de yeni şifreleme koruması nedeniyle sık başarısız olabilir.\n"
+                 "Yalnızca kendi hesabınıza ait, sahip olduğunuz (DRM'siz) içerikler için kullanın.",
+            font=ctk.CTkFont(size=9),
+            text_color=("#888888", "#888888"),
+            justify="left",
+            anchor="w"
+        )
+        cookie_note.pack(anchor="w")
+
         # Options Section
         options_frame = ctk.CTkFrame(parent)
         options_frame.pack(fill="x", padx=15, pady=(0, 15))
@@ -472,7 +542,23 @@ class StreamScribeOptimizedGUI:
             dropdown_font=ctk.CTkFont(size=10)
         )
         quality_menu.pack(fill="x", padx=12, pady=(0, 12))
-        
+
+        # Subtitle option (downloads existing YouTube subtitles, if any, and
+        # embeds them into the video via FFmpeg - no transcription/translation)
+        subtitle_frame = ctk.CTkFrame(options_frame)
+        subtitle_frame.pack(fill="x", padx=15, pady=(0, 15))
+
+        self.subtitle_var = ctk.BooleanVar(value=False)
+        self.subtitle_checkbox = ctk.CTkCheckBox(
+            subtitle_frame,
+            text="📝 Altyazı Ekle (mevcutsa, video ile gömülür)",
+            variable=self.subtitle_var,
+            font=ctk.CTkFont(size=11),
+            onvalue=True,
+            offvalue=False
+        )
+        self.subtitle_checkbox.pack(anchor="w", padx=12, pady=12)
+
         # Output directory
         output_frame = ctk.CTkFrame(options_frame)
         output_frame.pack(fill="x", padx=15, pady=(0, 15))
@@ -617,7 +703,7 @@ class StreamScribeOptimizedGUI:
             font=ctk.CTkFont(size=10)
         )
         self.info_details.pack(fill="x", pady=8)
-        self.info_details.insert("1.0", "Video analiz edilmedi.\n\nBir YouTube URL'si girin ve 'Analiz Et' butonuna tıklayın.")
+        self.info_details.insert("1.0", "Video analiz edilmedi.\n\nBir video URL'si (YouTube, Udemy vb.) girin ve 'Analiz Et' butonuna tıklayın.")
         self.info_details.configure(state="disabled")
         
         # Playlist videos list (initially hidden) - Improved layout
@@ -683,12 +769,152 @@ class StreamScribeOptimizedGUI:
     def _on_url_change(self, event=None):
         """Handle URL entry changes"""
         url = self.url_entry.get().strip()
-        if url and ("youtube.com" in url or "youtu.be" in url):
+        if url and url.lower().startswith(("http://", "https://")):
             self.analyze_btn.configure(state="normal")
         else:
             self.analyze_btn.configure(state="disabled")
             self.download_btn.configure(state="disabled")
-    
+
+    def _on_cookie_browser_change(self, choice: str):
+        """Handle cookie source selection for login-required sites (e.g. Udemy)"""
+        if choice == "📄 Çerez Dosyası (.txt) Seç...":
+            self.credentials_frame.pack_forget()
+            self._browse_cookie_file()
+            return
+
+        if choice == "✂️ Çerez Başlığını Yapıştır (DevTools)":
+            self.credentials_frame.pack_forget()
+            self._paste_cookie_header()
+            return
+
+        if choice == "🔑 Kullanıcı Adı/Şifre":
+            self.cookie_file_label.configure(text="")
+            self.credentials_frame.pack(fill="x", pady=(0, 4))
+            if self.downloader:
+                self.downloader.set_cookie_file(None)
+                self.downloader.set_cookies_from_browser(None)
+            logger.info("Cookie source set to: username/password (credentials entered separately)")
+            return
+
+        self.credentials_frame.pack_forget()
+        self.login_username_entry.delete(0, "end")
+        self.login_password_entry.delete(0, "end")
+
+        browser_map = {
+            "Kapalı": None,
+            "Chrome": "chrome",
+            "Firefox": "firefox",
+            "Edge": "edge",
+            "Brave": "brave",
+        }
+        browser = browser_map.get(choice)
+        self.cookie_file_label.configure(text="")
+        if self.downloader:
+            self.downloader.set_cookie_file(None)
+            self.downloader.set_cookies_from_browser(browser)
+            self.downloader.set_login_credentials(None, None)
+        logger.info(f"Cookie source set to: {browser or 'none'}")
+
+    def _sync_login_credentials(self):
+        """Push the username/password fields to the downloader, if that login
+        method is currently selected. Called right before analyze/download."""
+        if self.cookie_browser_var.get() != "🔑 Kullanıcı Adı/Şifre" or not self.downloader:
+            return
+        username = self.login_username_entry.get().strip()
+        password = self.login_password_entry.get()
+        if not username or not password:
+            self._show_error("Lütfen kullanıcı adı ve şifre girin.")
+            return False
+        self.downloader.set_login_credentials(username, password)
+        return True
+
+    def _browse_cookie_file(self):
+        """Let the user pick a Netscape-format cookies.txt file (exported from a
+        browser extension) as a more reliable alternative to live browser cookie
+        extraction, which can fail on Windows due to Chrome/Edge/Brave's
+        App-Bound Encryption."""
+        file_path = filedialog.askopenfilename(
+            title="Çerez Dosyası Seç (cookies.txt)",
+            filetypes=[("Metin dosyası", "*.txt"), ("Tüm dosyalar", "*.*")]
+        )
+        if not file_path:
+            # User cancelled - revert dropdown to "Kapalı"
+            self.cookie_browser_var.set("Kapalı")
+            return
+
+        self.cookie_file_label.configure(text=f"✓ {os.path.basename(file_path)}")
+        self.login_username_entry.delete(0, "end")
+        self.login_password_entry.delete(0, "end")
+        if self.downloader:
+            self.downloader.set_cookies_from_browser(None)
+            self.downloader.set_cookie_file(file_path)
+            self.downloader.set_login_credentials(None, None)
+        logger.info(f"Cookie file set to: {file_path}")
+
+    def _paste_cookie_header(self):
+        """Open a dialog explaining how to copy a raw 'Cookie' request header
+        from a browser's DevTools Network tab (after logging in normally,
+        as a real person, in that browser) and paste it here. This reuses a
+        legitimately-obtained session without an automated login attempt, a
+        browser-database read, or any extension."""
+        dialog = ctk.CTkToplevel(self.root)
+        dialog.title("Çerez Başlığını Yapıştır")
+        dialog.geometry("560x420")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        instructions = ctk.CTkLabel(
+            dialog,
+            text="1. Edge/Brave gibi bir tarayıcıda Udemy'ye normal şekilde giriş yapın.\n"
+                 "2. F12 ile Geliştirici Araçları'nı açın → \"Network\" (Ağ) sekmesi.\n"
+                 "3. Sayfayı yenileyin (F5), listeden herhangi bir udemy.com isteğine tıklayın.\n"
+                 "4. Sağdaki \"Headers\" bölümünde \"Request Headers\" altında \"cookie:\" satırını bulun.\n"
+                 "5. Değerinin tamamını (isim=değer; isim2=değer2; ... şeklinde) kopyalayıp\n"
+                 "   aşağıya yapıştırın.",
+            font=ctk.CTkFont(size=11),
+            justify="left",
+            anchor="w"
+        )
+        instructions.pack(fill="x", padx=15, pady=(15, 10))
+
+        text_box = ctk.CTkTextbox(dialog, height=180, font=ctk.CTkFont(size=10))
+        text_box.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+        text_box.focus_set()
+
+        button_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        button_frame.pack(fill="x", padx=15, pady=(0, 15))
+
+        def on_cancel():
+            dialog.destroy()
+            self.cookie_browser_var.set("Kapalı")
+
+        def on_use():
+            header = text_box.get("1.0", "end").strip()
+            if not header:
+                messagebox.showerror("Hata", "Lütfen bir çerez başlığı yapıştırın.", parent=dialog)
+                return
+            try:
+                count = self.downloader.set_raw_cookie_header(header) if self.downloader else 0
+            except ValueError as e:
+                messagebox.showerror("Hata", str(e), parent=dialog)
+                return
+            self.login_username_entry.delete(0, "end")
+            self.login_password_entry.delete(0, "end")
+            if self.downloader:
+                self.downloader.set_cookies_from_browser(None)
+                self.downloader.set_login_credentials(None, None)
+            self.cookie_file_label.configure(text=f"✓ Çerez başlığı ayarlandı ({count} çerez)")
+            logger.info(f"Raw cookie header set ({count} cookies parsed)")
+            dialog.destroy()
+
+        cancel_btn = ctk.CTkButton(button_frame, text="İptal", command=on_cancel, width=100)
+        cancel_btn.pack(side="right", padx=(8, 0))
+
+        use_btn = ctk.CTkButton(button_frame, text="Kullan", command=on_use, width=100)
+        use_btn.pack(side="right")
+
+        dialog.protocol("WM_DELETE_WINDOW", on_cancel)
+
     def _on_paste(self, event=None):
         """Handle paste event"""
         self.root.after(100, self._on_url_change)
@@ -707,9 +933,12 @@ class StreamScribeOptimizedGUI:
         """Analyze video and show info"""
         url = self.url_entry.get().strip()
         if not url:
-            messagebox.showerror("Hata", "Lütfen bir YouTube URL'si girin!")
+            messagebox.showerror("Hata", "Lütfen bir video URL'si girin!")
             return
-        
+
+        if self._sync_login_credentials() is False:
+            return
+
         logger.info(f"Analyzing URL: {url}")
         
         # Reset progress bar and status for new analysis
@@ -965,30 +1194,14 @@ class StreamScribeOptimizedGUI:
             )
             more_label.pack(pady=8)
     
-    def _download_single_video(self, url: str, title: str):
-        """Download a single video from playlist"""
-        if not url:
-            self._show_error("Geçersiz video URL'si")
-            return
-        
-        # Update URL entry with the selected video URL
-        self.url_entry.delete(0, "end")
-        self.url_entry.insert(0, url)
-        
-        # Update status
-        self.status_label.configure(text=f"Seçilen video: {title[:30]}...")
-        
-        # Auto-analyze the video
-        self._analyze_video()
-        
-        pass
-    
     def _download_playlist_video(self, url: str, title: str, video_index: int):
         """Download a single video from playlist with progress tracking"""
         if not url:
             self._show_error("Geçersiz video URL'si")
             return
-        
+
+        self._sync_login_credentials()
+
         # Update progress tracking
         self.playlist_download_index = video_index
         
@@ -1022,7 +1235,9 @@ class StreamScribeOptimizedGUI:
                     max_height=max_height,
                     prefer_mp4=True,
                     no_playlist=True,
-                    include_subs=False
+                    include_subs=self.subtitle_var.get(),
+                    sub_langs="tr,en",
+                    auto_subs=True
                 )
                 
                 # Restore original output directory
@@ -1058,7 +1273,10 @@ class StreamScribeOptimizedGUI:
         if self.bulk_download_active:
             self._show_error("Zaten bir toplu indirme işlemi devam ediyor!")
             return
-        
+
+        if self._sync_login_credentials() is False:
+            return
+
         # Confirm bulk download
         playlist_title = self.current_playlist_info.get('title', 'Playlist') if self.current_playlist_info else 'Playlist'
         playlist_name = playlist_title.split(' (')[0]  # Remove video count from title
@@ -1116,7 +1334,12 @@ class StreamScribeOptimizedGUI:
         current_video = self.playlist_entries[self.bulk_download_index]
         url = current_video.get('url', '')
         title = current_video.get('title', f'Video {self.bulk_download_index + 1}')
-        
+
+        # Keep playlist progress tracking in sync so _progress_callback can
+        # show playlist-aware status text during bulk downloads too
+        self.playlist_download_index = self.bulk_download_index + 1
+        self.playlist_total_videos = self.bulk_download_total
+
         # Update status for current video
         playlist_title = self.current_playlist_info.get('title', 'Playlist') if self.current_playlist_info else 'Playlist'
         playlist_name = playlist_title.split(' (')[0]
@@ -1152,7 +1375,9 @@ class StreamScribeOptimizedGUI:
                     max_height=max_height,
                     prefer_mp4=True,
                     no_playlist=True,
-                    include_subs=False
+                    include_subs=self.subtitle_var.get(),
+                    sub_langs="tr,en",
+                    auto_subs=True
                 )
                 
                 # Restore original output directory
@@ -1210,7 +1435,11 @@ class StreamScribeOptimizedGUI:
     def _finish_bulk_download(self):
         """Finish bulk download process"""
         self.bulk_download_active = False
-        
+
+        # Reset playlist progress tracking now that bulk download is over
+        self.playlist_download_index = 0
+        self.playlist_total_videos = 0
+
         # Update final status
         playlist_title = self.current_playlist_info.get('title', 'Playlist') if self.current_playlist_info else 'Playlist'
         playlist_name = playlist_title.split(' (')[0]
@@ -1228,7 +1457,9 @@ class StreamScribeOptimizedGUI:
         if completed_count == self.bulk_download_total:
             self.status_label.configure(text=f"✅ {playlist_name} - Tüm videolar başarıyla indirildi! (100%)\n📁 Klasör: {folder_name}")
             self.progress_bar.set(1.0)
-            self.progress_percent.configure(text="📋 Playlist[10/10] 100% (Tüm videolar tamamlandı)")
+            self.progress_percent.configure(
+                text=f"📋 Playlist[{self.bulk_download_total}/{self.bulk_download_total}] 100% (Tüm videolar tamamlandı)"
+            )
             
             # Ask user if they want to open the folder
             self.root.after(1000, lambda: self._ask_open_playlist_folder(playlist_output_dir, playlist_name))
@@ -1368,23 +1599,24 @@ class StreamScribeOptimizedGUI:
     def _on_format_change(self):
         """Handle format change"""
         format_type = self.format_var.get()
-        pass
-        
-        # Update quality options based on format
+
+        # Subtitles only make sense when downloading video
         if format_type == "audio":
-            # For audio, we don't need video quality options
-            pass
+            self.subtitle_var.set(False)
+            self.subtitle_checkbox.configure(state="disabled")
         else:
-            # For video, ensure quality is set
-            pass
+            self.subtitle_checkbox.configure(state="normal")
     
     def _start_download(self):
         """Start download process"""
         url = self.url_entry.get().strip()
         if not url:
-            messagebox.showerror("Hata", "Lütfen bir YouTube URL'si girin!")
+            messagebox.showerror("Hata", "Lütfen bir video URL'si girin!")
             return
-        
+
+        if self._sync_login_credentials() is False:
+            return
+
         # Update UI
         self.download_btn.configure(state="disabled", text="📡 İNDİRİLİYOR...")
         
@@ -1424,7 +1656,9 @@ class StreamScribeOptimizedGUI:
                     max_height=max_height,
                     prefer_mp4=True,
                     no_playlist=True,
-                    include_subs=False
+                    include_subs=self.subtitle_var.get(),
+                    sub_langs="tr,en",
+                    auto_subs=True
                 )
                 
                 if success:
@@ -1595,6 +1829,11 @@ class StreamScribeOptimizedGUI:
             pass
         except Exception as e:
             logger.error(f"Cleanup error: {e}")
+
+
+# Backward compatibility: there is no separate "legacy" GUI implementation
+# anymore, but main.py's --legacy flag still imports this name.
+YouTubeDownloaderGUI = StreamScribeOptimizedGUI
 
 
 if __name__ == "__main__":

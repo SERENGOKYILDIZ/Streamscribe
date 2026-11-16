@@ -1,434 +1,136 @@
-# StreamScribe: Modern YouTube Video Downloader & Subtitle Generator
+# StreamScribe: Modern Video & Audio Downloader (YouTube, Udemy & more)
 
-**StreamScribe** is a powerful and highly optimized Python application that downloads YouTube videos with a modern GUI interface and automatically generates Turkish subtitles using AI.
+**StreamScribe**, [yt-dlp](https://github.com/yt-dlp/yt-dlp), [PySide6 (Qt)](https://doc.qt.io/qtforpython/) ve [OpenAI Whisper](https://github.com/openai/whisper) üzerine inşa edilmiş, modern, şık ve yüksek performanslı bir masaüstü video indirme ve yapay zeka altyazı/transkripsiyon uygulamasıdır.
 
-![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
-![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-green.svg)
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)
+![GUI](https://img.shields.io/badge/GUI-PySide6%20(Qt6)-41CD52.svg)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Optimized](https://img.shields.io/badge/Optimized-v2.2.3-brightgreen.svg)
+![Version](https://img.shields.io/badge/Version-v3.1.0-brightgreen.svg)
 
-## 👨‍💻 Author
+---
 
-**Author:** Semi Eren Gökyıldız
-- **Email:** [gokyildizsemieren@gmail.com](mailto:gokyildizsemieren@gmail.com)
-- **GitHub:** [SERENGOKYILDIZ](https://github.com/SERENGOKYILDIZ)
+## 👨‍💻 Yazar (Author)
+
+**Geliştirici:** Semi Eren Gökyıldız
+- **E-posta:** [gokyildizsemieren@gmail.com](mailto:gokyildizsemieren@gmail.com)
+- **GitHub:** [@SERENGOKYILDIZ](https://github.com/SERENGOKYILDIZ)
 - **LinkedIn:** [Semi Eren Gökyıldız](https://www.linkedin.com/in/semi-eren-gokyildiz/)
 
-## Downloads
+---
 
-[![Download StreamScribe](https://img.shields.io/badge/Download-StreamScribe_v2.2.3-blue?style=for-the-badge&logo=windows)](https://github.com/SERENGOKYILDIZ/Streamscribe/releases/download/v2.2.3/Streamscribe_v2.2.3_Standalone.exe)
+## 🚀 Öne Çıkan Özellikler (v3.1.0)
+
+### 🎨 Modern & Ferah PySide6 (Qt) Arayüzü
+- **Sıfırdan Yenilenen Mimari:** Eski hantal arayüz yerine, akıcı ve duyarlı PySide6 (Qt) mimarisi.
+- **Koyu Tema (Slate 900):** Göz yormayan, pürüzsüz kartlar ve dikişsiz şeffaf tipografi.
+- **Sol Kenar Çubuğu (Sidebar):** İndirici, Canlı Kuyruk, Geçmiş ve Ayarlar sekmeleri arasında tek tıkla geçiş.
+- **High-DPI Desteği:** 4K, 2K ve farklı ölçeklendirme oranlarına sahip ekranlarda pürüzsüz görüntü.
+
+### 📥 Çoklu İndirme Kuyruğu (Download Queue)
+- **Eşzamanlı İndirme Havuzu:** Arka planda birden fazla videoyu aynı anda indirebilme (1-5 arası ayarlanabilir).
+- **Canlı Takip:** Anlık indirme hızı (MB/s), kalan süre (ETA), indirilen boyut ve ilerleme çubuğu.
+- **Gerçek İptal (Cancel) Desteği:** İstenen indirmeyi donma olmadan anında durdurabilme veya tümünü tek tıkla iptal etme.
+- **Klasörde Aç:** İndirme tamamlandığında dosyayı doğrudan Windows Gezgini'nde açabilme.
+
+### 🎬 Evrensel Video & Ses Uyumluluğu (H.264 + AAC)
+- **Windows Oynatıcı Garantisi:** YouTube'un sunduğu ve standart Windows oynatıcılarının açamadığı AV1/VP9 codec'leri yerine, **H.264 (AVC) + AAC** format önceliği. İndirilen videolar Windows Media Player, Filmler ve TV, telefonlar ve televizyonlarda çift tıklandığında doğrudan açılır.
+- **Kalite Seçimi:** 4K (2160p), 1440p, 1080p, 720p, 480p veya Yalnızca Ses (192 kbps MP3).
+- **Altyazı Gömme:** Kaynakta mevcut olan altyazıları otomatik indirip MP4 içine uyumlu şekilde gömme (`FFmpegSubtitlesConvertor`).
+
+### 🎙️ Whisper Yapay Zeka Transkripsiyonu
+- **Yerel Altyazı & Metin Çıkarma:** İndirilen video veya seslerden yerel OpenAI Whisper modeli ile otomatik altyazı (`.srt`) ve düz metin (`.txt`) üretme.
+- **Model Seçimi:** `tiny`, `base`, `small`, `medium` modelleri arasından ihtiyaca göre seçim.
+- **GPU / CPU Desteği:** CUDA destekli ekran kartı varsa otomatik olarak GPU üzerinde yüksek hızda çalışır.
+
+### 🎓 Udemy ve Oturum Gerektiren Siteler
+- **DevTools Cookie Header:** Tarayıcı DevTools (F12) Network sekmesinden kopyalanan `Cookie` başlığını tek tıkla yapıştırma (Windows App-Bound Encryption ve 403 engellerini aşmanın en güvenilir yöntemi).
+- **Tarayıcı Çerezleri:** Chrome, Firefox, Edge ve Brave tarayıcılarından çerez okuma desteği.
+- **Otomatik URL Normalizasyonu:** Güncel Udemy ders linklerini yt-dlp uyumlu formata otomatik dönüştürür.
+
+### 📜 SQLite İndirme Geçmişi
+- İndirilen veya transkribe edilen tüm videolar yerel SQLite veritabanında saklanır.
+- Başlık veya URL ile anında arama yapabilme, dosyanın bulunduğu klasöre gitme ve geçmişi temizleme.
 
 ---
 
-## 🚀 Features
+## 📁 Proje Klasör Mimarisi
 
-### 📱 Modern GUI Interface
-- **CustomTkinter** designed modern and user-friendly interface
-- Dark/light theme support
-- Real-time download progress tracking with detailed file size information
-- Drag-and-drop URL support
-- **Full-screen mode** with horizontal layout
-- **Smart notification system** for bulk downloads
-- **Dynamic title switching** (Video Bilgileri ↔ Oynatma Listesi Bilgileri)
-- **Improved playlist layout** with better spacing and visibility
-
-### 💻 Executable Build
-- **Ready-to-use executable** in the `build/` folder
-- **No Python installation required** on target computers
-- **Standalone application** with all dependencies included
-- **Easy distribution** - just copy the exe file
-
-### 📺 Video Downloading
-- **Download YouTube videos in MP4/MP3 format**
-- **Single video or complete playlist** downloading
-- **Quality selection up to 4K** (360p - 2160p) with **aggressive quality enforcement**
-- **Ultra-fast downloading** - Multi-threaded support with optimizations
-- **Automatic format optimization** with forced quality selection
-- **Local FFmpeg usage** - No installation required on other computers
-- **Bulk download notifications** - Get notified when all videos complete
-- **Progress bar reset** on new video analysis
-- **Real-time quality monitoring** - See selected vs. actual download quality
-
-### 🎵 Audio Downloading
-- **High-quality MP3** output (192 kbps)
-- **Automatic metadata** addition
-- **Fast audio conversion** with optimized processing
-
-### 📝 Subtitle Processing
-- **OpenAI Whisper** for automatic transcription
-- **Automatic translation from English to Turkish**
-- **SRT format** subtitle files
-- **Embed subtitles in video** (using FFmpeg)
-- **Multi-language support**
-
-### ⚡ Advanced Features
-- **Error tolerance** - Automatic retry on connection issues
-- **Smart file naming** - Safe character conversion
-- **Folder selection** - Download to your preferred location
-- **Ultra-fast video info** - Web scraping + yt-dlp fallback
-- **Thumbnail preview** - Visual information with video image
-- **Download history** - Track recently downloaded files
-- **Local FFmpeg** - No system installation required
-- **Automatic URL recognition** - Get info automatically when pasting URL
-- **Optimized playlist extraction** - Fast playlist information loading
-- **Horizontal UI layout** - Better element distribution
-
-### 🚀 New Optimizations (v2.0)
-
-#### ⚡ Performance Improvements
-- **Advanced Caching System**: Intelligent caching for video info and thumbnails
-- **Connection Pooling**: Optimized HTTP requests with session reuse
-- **Memory Management**: Automatic cleanup and resource management
-- **Thread Optimization**: Improved thread handling and cleanup
-- **Faster Video Info**: Enhanced web scraping with fallback mechanisms
-
-#### 🛡️ Enhanced Error Handling
-- **Centralized Error Management**: Comprehensive error categorization
-- **User-Friendly Messages**: Clear, actionable error messages in Turkish
-- **Automatic Retry Logic**: Smart retry mechanisms with exponential backoff
-- **Graceful Degradation**: Fallback options when primary methods fail
-
-#### 📊 Advanced Logging
-- **Structured Logging**: Detailed logging with rotation and levels
-- **Performance Monitoring**: Built-in performance tracking
-- **Debug Information**: Comprehensive debugging capabilities
-- **Error Tracking**: Detailed error logging and reporting
-- **Console-Only Logging**: Clean console output without log file creation
-- **Session Log Export**: Automatic `latest_log.txt` export on app shutdown for easy debugging
-
-#### ⚙️ Configuration Management
-- **Centralized Config**: All settings in one place
-- **User Preferences**: Persistent user configuration
-- **Environment Detection**: Automatic environment configuration
-- **Performance Tuning**: Configurable performance parameters
-
----
-
-## 🛠️ Installation
-
-### Quick Start (Recommended)
-```bash
-# Clone the repository
-git clone https://github.com/SERENGOKYILDIZ/Streamscribe.git
-cd Streamscribe
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the optimized version
-python main.py
-```
-
-### Alternative: Use Executable
-1. Go to the `build/` folder
-2. Double-click `Streamscribe.exe`
-3. The application will start immediately - no setup required!
-
-### Detailed Installation (Optional)
-
-#### 1. Python Requirements
-Python 3.12 is recommended for optimal compatibility.
-
-**Check Python version:**
-```bash
-python --version
-# or
-python3 --version
-```
-
-**If Python is not installed:**
-- **Windows:** Download from [python.org](https://www.python.org/downloads/) and check "Add to PATH"
-- **Linux:** `sudo apt install python3 python3-pip` (Ubuntu/Debian) or `sudo dnf install python3 python3-pip` (Fedora)
-- **macOS:** `brew install python3` or download from [python.org](https://www.python.org/downloads/)
-
-#### 2. Create Virtual Environment (Recommended)
-```bash
-# Windows
-python -m venv .venv
-.venv\Scripts\activate
-
-# Linux/macOS
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-#### 3. Install Dependencies
-```bash
-pip install -r requirements.txt
+```text
+Streamscribe/
+├── core/                       # İş mantığı ve yt-dlp motoru
+│   ├── engine.py               # yt-dlp indirme motoru ve H.264/AAC format kontrolü
+│   ├── metadata.py             # Hızlı video/oynatma listesi metadata analiz motoru
+│   ├── queue_manager.py        # Thread-pool eşzamanlı kuyruk yöneticisi & Qt Signals
+│   ├── transcriber.py          # Whisper yerel transkripsiyon motoru
+│   └── ffmpeg_helper.py        # Yerel ve sistem FFmpeg tespiti ve yardımcıları
+├── services/                   # Servisler ve kalıcı veri katmanı
+│   ├── config_service.py       # JSON tabanlı kalıcı ayarlar (~/.streamscribe/streamscribe_settings.json)
+│   ├── history_service.py      # SQLite tabanlı indirme geçmişi (~/.streamscribe/history.db)
+│   └── logger.py               # Yapılandırılmış ve döngüsel loglama servisi
+├── ui/                         # PySide6 (Qt) arayüz katmanı
+│   ├── app.py                  # Ana pencere ve navigasyon sidebar'ı
+│   ├── styles.py               # Modern Dark Theme QSS (Slate 900 paleti)
+│   ├── components/             # MediaCard, PlaylistCard, QueueItemWidget
+│   └── views/                  # DownloaderView, QueueView, HistoryView, SettingsView
+├── ffmpeg/                     # Taşınabilir yerel FFmpeg ikilileri
+├── logo/                       # İkon ve görseller
+├── config.py                   # Uygulama sabitleri
+├── main.py                     # Temiz PySide6 giriş noktası
+├── requirements.txt            # Bağımlılık listesi
+├── Streamscribe.spec           # PyInstaller derleme profili
+└── build.py                    # Tek tıkla EXE derleme betiği
 ```
 
 ---
 
-## 📖 Usage
+## 🛠️ Kurulum ve Çalıştırma
 
-### 🖥️ GUI Interface (Recommended)
+### Gereksinimler
+- Python 3.11 veya üzeri
+- Windows 10/11, macOS veya Linux
 
-**Launch the application:**
-```bash
-python main.py
-```
+### Adım Adım Kurulum
 
-**GUI usage steps:**
-1. 🔗 **Enter URL:** Paste YouTube video/playlist link
-2. 📋 **Video Info:** Use "Analiz Et" for preview
-3. ⚙️ **Configure Options:**
-   - Format: MP4 (Video) or MP3 (Audio)
-   - Quality: Choose between 360p - 4K
-   - Playlist: Check to download entire list
-   - Subtitles: Check to automatically add subtitles
-4. 📂 **Select Folder:** Choose download location
-5. ⬇️ **Download:** Click "İNDİR" button
-6. 📊 **Monitor:** Track status from progress bar with file size info
-7. 🔔 **Get Notified:** Receive notification when bulk download completes
+1. **Depoyu Klonlayın veya İndirin:**
+   ```bash
+   git clone https://github.com/SERENGOKYILDIZ/Streamscribe.git
+   cd Streamscribe
+   ```
 
-### 💻 Command Line Options
+2. **Sanal Ortam Oluşturun ve Aktif Edin:**
+   ```bash
+   python -m venv .venv
+   # Windows için:
+   .\.venv\Scripts\activate
+   # Linux/macOS için:
+   source .venv/bin/activate
+   ```
 
-```bash
-python main.py [OPTIONS]
+3. **Gerekli Paketleri Yükleyin:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Options:
-  --legacy           Launch legacy GUI interface
-  --check-deps       Check required dependencies
-  --test             Test downloader functionality
-  --info             Show system information
-  --version          Show version information
-```
+4. **Uygulamayı Başlatın:**
+   ```bash
+   python main.py
+   ```
 
 ---
 
-## 🔧 Advanced Configuration
+## 📦 Bağımsız (Standalone) EXE Derleme
 
-### Performance Settings
-```python
-# config.py
-CACHE_SIZE = 50                    # Video info cache size
-THUMBNAIL_CACHE_SIZE = 30          # Thumbnail cache size
-TIMEOUT_FAST = 1.5                 # Fast request timeout
-TIMEOUT_NORMAL = 3.0               # Normal request timeout
-MAX_PLAYLIST_VIDEOS = 50           # Maximum playlist videos
+Harici Python kurulumu gerektirmeyen tek bir çalıştırılabilir dosya üretmek için:
+
+```powershell
+python build.py
 ```
 
-### Logging Configuration
-```python
-# logger.py
-LOG_LEVEL = "ERROR"                # Logging level (ERROR only for clean console)
-LOG_FILE = "streamscribe.log"      # Log file name (disabled in v2.0.2)
-LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-```
+Derlenen dosya `releases/v3.1.0/Streamscribe_v3.1.0_Standalone.exe` dizininde kullanıma hazır hale gelecektir.
 
 ---
 
-## 📁 Project Structure
+## ⚖️ Lisans
 
-```
-StreamScribe/
-├── main.py                    # Optimized main entry point
-├── gui.py                     # Optimized GUI interface
-├── downloader.py              # Optimized downloader engine
-├── config.py                  # Configuration management
-├── logger.py                  # Logging system
-├── error_handler.py           # Error handling system
-├── utils.py                   # Performance utilities
-├── test_optimizations.py      # Test suite
-├── test_progress.py           # Progress bar testing
-├── requirements.txt           # Updated dependencies
-├── latest_log.txt             # Last session log (auto-generated)
-├── downloads/                 # Downloaded files
-├── ffmpeg/                    # Built-in FFmpeg binaries
-├── logo/                      # Application icons
-└── build/                     # Executable files
-```
-
----
-
-## 🚀 Performance Benchmarks
-
-### Before Optimization
-- Video info retrieval: ~3-5 seconds
-- Memory usage: ~150MB
-- Cache hit rate: 0%
-- Error handling: Basic
-
-### After Optimization
-- Video info retrieval: ~0.5-1 second ⚡
-- Memory usage: ~80MB (47% reduction) 📉
-- Cache hit rate: 85%+ 🎯
-- Error handling: Comprehensive 🛡️
-
----
-
-## 🧪 Testing
-
-Run the comprehensive test suite:
-```bash
-python test_optimizations.py
-```
-
-Test progress bar functionality:
-```bash
-python test_progress.py
-```
-
-Test coverage includes:
-- ✅ Configuration module
-- ✅ Logging system
-- ✅ Error handling
-- ✅ Utility functions
-- ✅ Downloader optimization
-- ✅ Progress bar functionality
-- ✅ Integration tests
-- ✅ Performance tests
-
----
-
-## 🔍 Troubleshooting
-
-### Common Issues and Solutions
-
-**"Module not found" error:**
-```bash
-pip install -r requirements.txt
-```
-
-**Performance issues:**
-```bash
-# Check system resources
-python main.py --info
-
-# Test downloader
-python main.py --test
-```
-
-**Logging issues:**
-```bash
-# Check log files
-tail -f streamscribe.log
-tail -f streamscribe.error.log
-```
-
-**Progress bar issues:**
-```bash
-# Test progress functionality
-python test_progress.py
-```
-
----
-
-## 🤝 Contributing
-
-1. 🍴 **Fork** the repository
-2. 🌿 **Create feature branch** (`git checkout -b feature/amazing-feature`)
-3. 💾 **Commit** changes (`git commit -m 'Add amazing feature'`)
-4. 📤 **Push** to branch (`git push origin feature/amazing-feature`)
-5. 🔄 **Open Pull Request**
-
----
-
-## 📊 Performance Monitoring
-
-The optimized version includes built-in performance monitoring:
-
-- **Cache Statistics**: Track cache hit rates and performance
-- **Memory Usage**: Monitor memory consumption
-- **Download Speed**: Track download performance
-- **Error Rates**: Monitor error frequency and types
-- **Progress Tracking**: Real-time download progress with file size info
-
----
-
-## 🎯 Future Optimizations
-
-Planned improvements for future versions:
-
-- [ ] **GPU Acceleration**: CUDA support for faster processing
-- [ ] **Database Caching**: Persistent cache storage
-- [ ] **Parallel Downloads**: Multiple simultaneous downloads
-- [ ] **Smart Quality Selection**: Automatic quality optimization
-- [ ] **Cloud Integration**: Cloud storage support
-- [ ] **Advanced Playlist Management**: Better playlist organization
-- [ ] **Custom Themes**: User-selectable interface themes
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🏆 Optimization Summary
-
-The StreamScribe v2.0 optimization brings:
-
-- **47% reduction** in memory usage
-- **3-5x faster** video info retrieval
-- **85%+ cache hit rate** for repeated requests
-- **Comprehensive error handling** with user-friendly messages
-- **Advanced logging** with performance monitoring
-- **Centralized configuration** management
-- **Thread-safe operations** with proper cleanup
-- **Connection pooling** for better network performance
-- **Enhanced video quality selection** with better format matching
-- **Improved playlist layout** with better spacing and visibility
-- **Progress bar reset** functionality for new video analysis
-- **Dynamic title switching** based on content type
-
-These optimizations make StreamScribe significantly faster, more reliable, and more user-friendly while maintaining all existing functionality.
-
----
-
-## 🔄 Recent Updates
-
-### v2.2.3 (Latest)
-- ✅ **Session Log Export** - Automatic `latest_log.txt` generation on app shutdown
-- ✅ **yt-dlp Upgrade** - Updated from v2026.3.17 to v2026.6.9 for better YouTube compatibility
-- ✅ **Video Info Fix** - Fixed "Video bilgisi alınamadı" error with retry logic and multiple player clients
-- ✅ **Browser Cookie Support** - Auto-retry with browser cookies for age-restricted videos
-- ✅ **Enhanced Error Messages** - More detailed and actionable error messages
-
-### v2.2.1
-- ✅ **Filename Cleanup** - Removed random Video IDs from downloaded filenames (e.g. "Video Title.mp4")
-- ✅ **Build Fix** - Migrated to Python 3.11 to resolve PyInstaller build issues
-- ✅ **Dependency Update** - Detailed requirements verification
-
-### v2.2.0
-- ✅ **Version Bump** - Updated to v2.2.0
-- ✅ **Video Info Fix** - Resolved "Requested format is not available" error by optimizing yt-dlp options
-- ✅ **Right-Click Paste** - Added context menu "Yapıştır" (Paste) to URL input field
-- ✅ **UI Improvements** - Enhanced progress percentage visibility (White color, larger font)
-- ✅ **License** - Added MIT License
-
-- ✅ **Progress bar size stabilization** - Size fluctuations prevented, progress bar shaking resolved
-- ✅ **YouTube 403 Forbidden error fixed** - Format string flexibility increased
-- ✅ **Stable size management** - Size fluctuations filtered with _stable_total_bytes
-- ✅ **Flexible format selection** - height>={max_height-180} → height<={max_height} transition
-- ✅ **yt-dlp options optimization** - format_sort_force: False, prefer_free_formats: True
-- ✅ **Progress hook improvements** - Stable percentage calculation and size management
-- ✅ **Automatic size reset** - Stable size automatically resets for each new download
-
-### v2.1
-- ✅ **Major quality improvements** - Aggressive quality enforcement for exe builds
-- ✅ **Console log cleanup** - No more log files, clean console output only
-- ✅ **Real-time quality monitoring** - See selected vs. actual download quality in terminal
-- ✅ **Enhanced format string** - More aggressive quality selection with fallbacks
-- ✅ **YouTube 403 error prevention** - Flexible format selection to avoid restrictions
-- ✅ **Quality threshold optimization** - 1080p → 900p+, 720p → 540p+ minimum
-- ✅ **Format sort enforcement** - Strict quality sorting with codec preferences
-- ✅ **Progress hook improvements** - Better format selection visibility
-
-### v2.0.1
-- ✅ **Enhanced video quality selection** - Better format matching for selected quality
-- ✅ **Progress bar improvements** - Reset functionality and better progress tracking
-- ✅ **Dynamic title switching** - Smart title changes based on content type
-- ✅ **Improved playlist layout** - Better spacing and visibility for video items
-- ✅ **Panel width optimization** - Better space distribution between left and right panels
-- ✅ **File size information** - Real-time file size display during download
-- ✅ **Enhanced error handling** - Better error messages and recovery
-- ✅ **Performance optimizations** - Faster video info retrieval and better caching
-
-### v2.0.0
-- ✅ **Major performance improvements** - 47% memory reduction, 3-5x faster video info
-- ✅ **Advanced caching system** - Intelligent caching for better performance
-- ✅ **Enhanced error handling** - Comprehensive error management
-- ✅ **Advanced logging** - Performance monitoring and debugging
-- ✅ **Centralized configuration** - Better settings management
+Bu proje **MIT Lisansı** altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına göz atabilirsiniz.

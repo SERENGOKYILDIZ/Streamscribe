@@ -286,42 +286,6 @@ class ThreadManager:
 thread_manager = ThreadManager()
 
 
-class URLValidator:
-    """URL validation utilities"""
-    
-    @staticmethod
-    def is_youtube_url(url: str) -> bool:
-        """Check if URL is a valid YouTube URL"""
-        youtube_domains = [
-            'youtube.com',
-            'www.youtube.com',
-            'youtu.be',
-            'm.youtube.com',
-            'music.youtube.com'
-        ]
-        
-        try:
-            from urllib.parse import urlparse
-            parsed = urlparse(url)
-            return parsed.netloc.lower() in youtube_domains
-        except Exception:
-            return False
-    
-    @staticmethod
-    def is_playlist_url(url: str) -> bool:
-        """Check if URL is a YouTube playlist URL"""
-        return 'list=' in url or 'playlist' in url
-    
-    @staticmethod
-    def normalize_youtube_url(url: str) -> str:
-        """Normalize YouTube URL"""
-        if 'youtu.be/' in url:
-            # Convert youtu.be to youtube.com
-            video_id = url.split('youtu.be/')[-1].split('?')[0]
-            return f"https://www.youtube.com/watch?v={video_id}"
-        return url
-
-
 class ProgressTracker:
     """Progress tracking utilities"""
     

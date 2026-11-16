@@ -1,27 +1,29 @@
-# My special files
+# StreamScribe .gitignore
+
+# Special / Local Bundles
 /ffmpeg/*
 releases/
+dist/
+build/
 
 # Virtual environments
+.venv/
 /.venv/*
 /venv/*
 /env/*
 /ENV/*
+env/
+venv/
 
-# Python
+# Python Cache & Bytecode
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
-dist/
-downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -44,23 +46,14 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# IDE
+# IDE / Editor configs
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
+# Operating System Files
 .DS_Store
 .DS_Store?
 ._*
@@ -69,20 +62,29 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Logs
+# Logs & Temporary Files
 *.log
 latest_log.txt
 build_output.log
-
-# Temporary files
+streamscribe.log
 *.tmp
 *.temp
+tmp*
 
-# FFmpeg (if not needed in repo)
-# /ffmpeg/*
+# StreamScribe Local Storage & Databases
+*.db
+*.sqlite
+*.sqlite3
+streamscribe_settings.json
+user_config.json
+.streamscribe/
+downloads/
+test_downloads/
+test_h264/
 
-# Model files (large AI models)
+# Large Model Files
 *.pt
 *.pth
 *.bin
 *.safetensors
+*.onnx

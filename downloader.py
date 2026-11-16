@@ -8,8 +8,8 @@ Enhanced YouTube downloader with improved performance and error handling
 import os
 import threading
 import re
-import json
 import time
+import tempfile
 from typing import Callable, Optional, Dict, Any, List
 from pathlib import Path
 import requests
@@ -19,6 +19,29 @@ from config import config
 from logger import get_logger
 
 logger = get_logger('downloader')
+
+
+class _YdlErrorCapture:
+    """Minimal yt-dlp logger that captures warning/error messages instead of
+    printing them to the console, so the real failure reason (e.g. why a
+    login silently failed) can be surfaced to the user instead of a generic
+    "video unavailable" message. Never receives passwords - yt-dlp/site
+    extractors do not echo credentials back through their loggers."""
+
+    def __init__(self):
+        self.messages: List[str] = []
+
+    def debug(self, msg):
+        pass
+
+    def info(self, msg):
+        pass
+
+    def warning(self, msg):
+        self.messages.append(str(msg))
+
+    def error(self, msg):
+        self.messages.append(str(msg))
 
 
 class OptimizedYouTubeDownloader:
@@ -42,7 +65,27 @@ class OptimizedYouTubeDownloader:
         
         # Set FFmpeg path
         self.ffmpeg_path = config.get_ffmpeg_path()
-        
+
+        # Optional: browser to pull cookies from, for sites that require login
+        # (e.g. Udemy). None means no cookies are used.
+        self.cookies_from_browser: Optional[str] = None
+
+        # Optional: path to a Netscape-format cookies.txt file, as an alternative
+        # to live browser cookie extraction (which can fail on Windows due to
+        # Chrome/Brave/Edge's "App-Bound Encryption" - see yt-dlp#10927).
+        # Takes priority over cookies_from_browser when set.
+        self.cookie_file: Optional[str] = None
+
+        # Tracks a cookies.txt file we generated ourselves (e.g. from a pasted
+        # cookie header via set_raw_cookie_header), so it can be cleaned up.
+        self._temp_cookie_file: Optional[str] = None
+
+        # Optional: direct username/password login (e.g. for Udemy), used by
+        # sites yt-dlp supports logging into directly. Kept only in memory,
+        # never written to disk or logged.
+        self.login_username: Optional[str] = None
+        self.login_password: Optional[str] = None
+
         # Ensure output directory exists
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
         
@@ -59,7 +102,126 @@ class OptimizedYouTubeDownloader:
     def set_error_callback(self, callback: Callable):
         """Set callback function for error handling"""
         self.error_callback = callback
-    
+
+    def set_cookies_from_browser(self, browser: Optional[str]):
+        """Set the browser to pull login cookies from (e.g. 'chrome', 'firefox',
+        'edge', 'brave'). Needed for sites that require authentication, such as
+        Udemy. Pass None to disable."""
+        self.cookies_from_browser = browser or None
+
+    def set_cookie_file(self, path: Optional[str]):
+        """Set a Netscape-format cookies.txt file to use for login instead of
+        live browser extraction. Pass None to disable."""
+        self.cookie_file = path or None
+
+    def set_login_credentials(self, username: Optional[str], password: Optional[str]):
+        """Set a username/password to log in directly (e.g. for Udemy), bypassing
+        browser cookie extraction entirely. Pass (None, None) to disable."""
+        self.login_username = username or None
+        self.login_password = password or None
+
+    def set_raw_cookie_header(self, header: Optional[str]) -> int:
+        """Parse a raw 'Cookie: name1=value1; name2=value2' request header
+        (copied by hand from a browser's DevTools Network tab, after logging
+        in normally in that browser) and write it to a temporary Netscape
+        cookies.txt file used via cookie_file. This reuses a session a real
+        person already authenticated in their own browser - no automated
+        login attempt, no browser-database reading (so it also sidesteps the
+        DPAPI/App-Bound Encryption issue), no extension required.
+        Pass None/empty to clear. Returns the number of cookies parsed."""
+        # Clean up any previous temp file
+        old_temp = getattr(self, '_temp_cookie_file', None)
+        if old_temp:
+            try:
+                os.remove(old_temp)
+            except OSError:
+                pass
+            self._temp_cookie_file = None
+
+        if not header or not header.strip():
+            self.cookie_file = None
+            return 0
+
+        pairs = []
+        for part in header.split(';'):
+            part = part.strip()
+            if '=' not in part:
+                continue
+            name, _, value = part.partition('=')
+            name = name.strip()
+            value = value.strip()
+            if name:
+                pairs.append((name, value))
+
+        if not pairs:
+            raise ValueError(
+                "Geçerli çerez bulunamadı. 'isim=değer; isim2=değer2' formatında olmalı."
+            )
+
+        expiry = int(time.time()) + 365 * 24 * 3600
+        lines = ["# Netscape HTTP Cookie File"]
+        for name, value in pairs:
+            lines.append(f".udemy.com\tTRUE\t/\tTRUE\t{expiry}\t{name}\t{value}")
+
+        fd, path = tempfile.mkstemp(prefix="streamscribe_cookies_", suffix=".txt")
+        with os.fdopen(fd, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines) + '\n')
+
+        self.cookie_file = path
+        self._temp_cookie_file = path
+        return len(pairs)
+
+    def _auth_error_message(self, text: str) -> Optional[str]:
+        """Turn a raw yt-dlp error/warning string into a friendly Turkish message
+        for known authentication failure modes (CAPTCHA, bad login, cookie
+        extraction). Returns None if the text doesn't match any of these, so
+        the caller can fall back to its own generic categorization."""
+        lower = text.lower()
+        if "captcha" in lower:
+            return (
+                "Udemy bir CAPTCHA doğrulaması istiyor. Bu durumda kullanıcı adı/şifre ile "
+                "otomatik giriş yapılamaz - lütfen tarayıcınızdan Udemy'ye normal şekilde giriş yapıp "
+                "CAPTCHA'yı çözün, sonra tarayıcı çerezi veya çerez dosyası yöntemini deneyin."
+            )
+        if "unable to login" in lower:
+            return "Udemy girişi başarısız. Kullanıcı adı/e-posta ve şifreyi kontrol edip tekrar deneyin."
+        if "cookie" in lower:
+            browser_name = self.cookies_from_browser or "seçili tarayıcı"
+            return (
+                f"{browser_name} çerezleri okunamadı. Olası nedenler: "
+                f"(1) {browser_name} hâlâ çalışıyor (arka planda/sistem tepsisinde de olabilir) - "
+                f"tamamen kapatıp tekrar deneyin. "
+                f"(2) Chrome/Brave'in yeni 'App-Bound Encryption' koruması nedeniyle çerez şifresi "
+                f"çözülemiyor olabilir (bilinen bir yt-dlp sınırlaması) - bu durumda Edge veya Firefox "
+                f"seçmeyi deneyin."
+            )
+        return None
+
+    def _normalize_udemy_url(self, url: str) -> str:
+        """yt-dlp's Udemy extractor regex expects `<course-slug>/learn/v4/t/lecture/<id>`
+        (or `<course-slug>/` for a whole course) directly after the domain, but
+        Udemy's current site uses `/course/<course-slug>/...` - the extra
+        `course/` segment makes yt-dlp misparse the course slug as literally
+        "course", which then 403s. Rewrite the URL into the shape yt-dlp expects."""
+        lecture_match = re.match(
+            r'https?://(?:[^/]+\.)?udemy\.com/course/([^/?#&]+)/learn/lecture/(\d+)',
+            url
+        )
+        if lecture_match:
+            slug, lecture_id = lecture_match.groups()
+            rewritten = f'https://www.udemy.com/{slug}/learn/v4/t/lecture/{lecture_id}'
+            logger.info(f"Rewriting Udemy lecture URL for extractor compatibility: {rewritten}")
+            return rewritten
+
+        course_match = re.match(r'https?://(?:[^/]+\.)?udemy\.com/course/([^/?#&]+)/?$', url)
+        if course_match:
+            slug = course_match.group(1)
+            rewritten = f'https://www.udemy.com/{slug}/'
+            logger.info(f"Rewriting Udemy course URL for extractor compatibility: {rewritten}")
+            return rewritten
+
+        return url
+
     def _progress_hook(self, d: Dict[str, Any]):
         """Optimized progress hook for yt-dlp with stable size handling"""
         try:
@@ -188,7 +350,16 @@ class OptimizedYouTubeDownloader:
                 "prefer_free_formats": True,  # Prefer free formats to avoid 403
                 "check_formats": False,  # Disable format checking to avoid 403
             }
-            
+
+            if self.cookie_file:
+                options["cookiefile"] = self.cookie_file
+            elif self.cookies_from_browser:
+                options["cookiesfrombrowser"] = (self.cookies_from_browser,)
+
+            if self.login_username and self.login_password:
+                options["username"] = self.login_username
+                options["password"] = self.login_password
+
             if audio_only:
                 options.update({
                     "format": "bestaudio/best",
@@ -203,15 +374,7 @@ class OptimizedYouTubeDownloader:
                 })
             else:
                 # For video downloads, use enhanced format string with audio guarantee
-                format_string = self._build_format_string(max_height, prefer_mp4)
-                pass
-                
-                # Add fallback format to ensure audio is always included
-                fallback_format = f"best[height<={max_height}]+bestaudio/best+bestaudio"
-                pass
-                
-                # Use the generated format string
-                options["format"] = format_string
+                options["format"] = self._build_format_string(max_height, prefer_mp4)
                 # For video downloads, ensure audio is preserved and merged properly
                 options.setdefault("postprocessors", []).extend([
                     # Use FFmpegVideoConvertor to ensure video+audio merge
@@ -234,13 +397,12 @@ class OptimizedYouTubeDownloader:
                 options["ignore_no_formats_error"] = True  # Ignore format errors
                 # Ensure video+audio merge
                 options["merge_output_format"] = "mp4" if prefer_mp4 else "mkv"
-                options["prefer_ffmpeg"] = True  # Prefer FFmpeg for processing
-                # Quality enforcement - force higher quality
+                # Quality enforcement - force higher quality (overrides the more
+                # flexible top-level defaults, which stay in effect for audio_only)
                 options["format_sort"] = ["res", "fps", "codec:h264", "codec:vp9", "codec:av1"]
                 options["format_sort_force"] = True  # Force strict sorting
                 options["prefer_free_formats"] = False  # Don't prefer free formats
                 options["check_formats"] = True  # Enable format checking
-                options["format_sort_force"] = True  # Force quality selection
             
             if include_subs:
                 langs = [s.strip() for s in sub_langs.split(",") if s.strip()]
@@ -277,9 +439,10 @@ class OptimizedYouTubeDownloader:
         
         try:
             self._is_downloading = True
+            url = self._normalize_udemy_url(url)
             if self.status_callback:
                 self.status_callback("İndirme başlatılıyor...")
-            
+
             # Get optimized options
             ydl_opts = self._get_optimized_ydl_options(
                 audio_only, max_height, prefer_mp4, no_playlist, 
@@ -305,7 +468,10 @@ class OptimizedYouTubeDownloader:
             logger.error(f"Download error: {e}")
             
             # Categorize and provide user-friendly error messages
-            if "Private video" in error_str:
+            auth_msg = self._auth_error_message(error_str)
+            if auth_msg:
+                error_msg = auth_msg
+            elif "Private video" in error_str:
                 error_msg = "Bu video özel/gizli. İndirilemez."
             elif "Video unavailable" in error_str:
                 error_msg = "Video mevcut değil veya kaldırılmış."
@@ -346,61 +512,6 @@ class OptimizedYouTubeDownloader:
         """Check if download is in progress"""
         return self._is_downloading
     
-    def _extract_video_id(self, url: str) -> str:
-        """Extract YouTube video ID from URL with optimized patterns"""
-        patterns = [
-            r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})',
-            r'youtube\.com/.*[?&]v=([a-zA-Z0-9_-]{11})'
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, url)
-            if match:
-                return match.group(1)
-        return ''
-    
-    def _extract_playlist_id(self, url: str) -> str:
-        """Extract YouTube playlist ID from URL"""
-        patterns = [
-            r'list=([a-zA-Z0-9_-]+)',
-            r'playlist\?list=([a-zA-Z0-9_-]+)',
-            r'&list=([a-zA-Z0-9_-]+)',
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, url)
-            if match:
-                return match.group(1)
-        return ''
-    
-    def _clean_title(self, title: str) -> str:
-        """Clean and decode title text with enhanced Turkish character support"""
-        if not title:
-            return 'Bilinmeyen Video'
-        
-        try:
-            import html
-            import unicodedata
-            
-            # Handle JSON-escaped strings
-            if '\\u' in title:
-                title = title.encode().decode('unicode_escape')
-            
-            # Handle HTML entities
-            title = html.unescape(title)
-            
-            # Normalize Unicode
-            title = unicodedata.normalize('NFC', title)
-            
-            # Clean up excessive whitespace
-            title = ' '.join(title.split())
-            
-            return title.strip() if title.strip() else 'Bilinmeyen Video'
-            
-        except Exception as e:
-            pass
-            return 'Bilinmeyen Video'
-    
     def get_video_info_fast(self, url: str) -> Dict[str, Any]:
         """Get video info using yt-dlp (reliable method) with retry"""
         try:
@@ -435,201 +546,6 @@ class OptimizedYouTubeDownloader:
             logger.error(f"Error in get_video_info_fast: {e}")
             return {'error': f'Video bilgisi alınamadı: {str(e)[:80]}'}
     
-    def _extract_title_from_html_optimized(self, html: str) -> str:
-        """Extract video title using optimized JSON parsing"""
-        try:
-            # Method 1: ytInitialPlayerResponse JSON
-            json_pattern = r'var ytInitialPlayerResponse = (\{.*?\});'
-            json_match = re.search(json_pattern, html)
-            if json_match:
-                try:
-                    json_data = json.loads(json_match.group(1))
-                    title = json_data.get('videoDetails', {}).get('title', '')
-                    if title:
-                        return title
-                except (json.JSONDecodeError, KeyError):
-                    pass
-            
-            # Method 2: ytInitialData JSON
-            json_pattern2 = r'var ytInitialData = (\{.*?\});'
-            json_match2 = re.search(json_pattern2, html)
-            if json_match2:
-                try:
-                    json_data = json.loads(json_match2.group(1))
-                    contents = json_data.get('contents', {}).get('twoColumnWatchNextResults', {}).get('results', {}).get('results', {}).get('contents', [])
-                    for content in contents:
-                        video_primary = content.get('videoPrimaryInfoRenderer', {})
-                        if video_primary:
-                            title_runs = video_primary.get('title', {}).get('runs', [])
-                            if title_runs and len(title_runs) > 0:
-                                title = title_runs[0].get('text', '')
-                                if title:
-                                    return title
-                except (json.JSONDecodeError, KeyError):
-                    pass
-            
-            # Method 3: Simple regex fallback
-            patterns = [
-                r'"title":"([^"]+)"',
-                r'"title":\{"runs":\[\{"text":"([^"]+)"',
-                r'<title>([^<]+)</title>'
-            ]
-            
-            for pattern in patterns:
-                match = re.search(pattern, html)
-                if match:
-                    title = match.group(1)
-                    if title and title != 'YouTube':
-                        return title.replace(' - YouTube', '').strip()
-            
-            return 'Bilinmeyen Video'
-            
-        except Exception as e:
-            pass
-            return 'Bilinmeyen Video'
-    
-    def _get_playlist_info_optimized(self, url: str) -> Dict[str, Any]:
-        """Get playlist info using optimized web scraping"""
-        try:
-            playlist_id = self._extract_playlist_id(url)
-            if not playlist_id:
-                return {'error': 'Geçersiz playlist URL'}
-            
-            response = self._session.get(url, timeout=config.TIMEOUT_NORMAL)
-            
-            if response.status_code != 200:
-                return {'error': 'Playlist sayfası erişilemez'}
-            
-            html = response.text
-            
-            # Extract playlist title
-            title = self._extract_playlist_title_optimized(html)
-            if not title:
-                title = 'Playlist'
-            
-            # Count videos
-            video_count = self._count_playlist_videos_optimized(html)
-            
-            # Get thumbnail
-            thumbnail_url = ''
-            first_video_id = self._extract_first_video_id(html)
-            if first_video_id:
-                thumbnail_url = f'https://img.youtube.com/vi/{first_video_id}/mqdefault.jpg'
-            else:
-                thumbnail_url = 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg'
-            
-            result = {
-                'title': f"{self._clean_title(title)} ({video_count} video)",
-                'thumbnail': thumbnail_url,
-                'is_playlist': True,
-                'playlist_count': video_count,
-                'playlist_id': playlist_id,
-                'method': 'optimized_webscraping'
-            }
-            
-            # Cache the result
-            self._video_info_cache[url] = result
-            
-            pass
-            return result
-            
-        except requests.RequestException as e:
-            logger.error(f"Request error in playlist info: {e}")
-            return {'error': f'İnternet bağlantısı sorunu: {str(e)[:30]}...'}
-        except Exception as e:
-            logger.error(f"Error in playlist info: {e}")
-            return {'error': f'Playlist bilgisi alınamadı: {str(e)[:30]}...'}
-    
-    def _extract_playlist_title_optimized(self, html: str) -> str:
-        """Extract playlist title using optimized JSON parsing"""
-        try:
-            # Try ytInitialData JSON
-            json_pattern = r'var ytInitialData = (\{.*?\});'
-            json_match = re.search(json_pattern, html)
-            if json_match:
-                try:
-                    json_data = json.loads(json_match.group(1))
-                    
-                    # Navigate to playlist title
-                    metadata = json_data.get('metadata', {}).get('playlistMetadataRenderer', {})
-                    title = metadata.get('title', '')
-                    if title:
-                        return title
-                    
-                    # Alternative path
-                    header = json_data.get('header', {}).get('playlistHeaderRenderer', {})
-                    title_obj = header.get('title', {})
-                    if isinstance(title_obj, dict):
-                        title = title_obj.get('simpleText', '')
-                        if title:
-                            return title
-                            
-                except (json.JSONDecodeError, KeyError, TypeError):
-                    pass
-            
-            # Fallback patterns
-            patterns = [
-                r'"playlistTitle":"([^"]+)"',
-                r'"title":"([^"]+)".*"playlistRenderer"',
-                r'<title>([^<]+)</title>',
-            ]
-            
-            for pattern in patterns:
-                try:
-                    match = re.search(pattern, html)
-                    if match:
-                        title = match.group(1)
-                        if title and 'YouTube' not in title and len(title) > 3:
-                            clean_title = title.replace(' - YouTube', '').replace(' | YouTube', '').strip()
-                            if clean_title:
-                                return clean_title
-                except Exception:
-                    continue
-            
-            return ''
-            
-        except Exception as e:
-            pass
-            return ''
-    
-    def _count_playlist_videos_optimized(self, html: str) -> int:
-        """Count videos in playlist using optimized method"""
-        try:
-            # Count videoId patterns
-            video_matches = re.findall(r'"videoId":"([a-zA-Z0-9_-]{11})"', html)
-            unique_videos = len(set(video_matches))
-            
-            if unique_videos > 0:
-                return min(unique_videos, config.MAX_PLAYLIST_VIDEOS)
-            
-            # Count playlist items
-            item_matches = re.findall(r'"playlistItemRenderer"', html)
-            if item_matches:
-                return min(len(item_matches), config.MAX_PLAYLIST_VIDEOS)
-            
-            return 0
-            
-        except Exception as e:
-            pass
-            return 0
-    
-    def _extract_first_video_id(self, html: str) -> str:
-        """Extract first video ID from playlist for thumbnail"""
-        try:
-            video_matches = re.findall(r'"videoId":"([a-zA-Z0-9_-]{11})"', html)
-            if video_matches:
-                return video_matches[0]
-            
-            item_pattern = r'"playlistItemRenderer".*?"videoId":"([a-zA-Z0-9_-]{11})"'
-            item_match = re.search(item_pattern, html)
-            if item_match:
-                return item_match.group(1)
-            
-            return ''
-            
-        except Exception:
-            return ''
-    
     def get_video_info(self, url: str) -> Dict[str, Any]:
         """Get video information - delegates to get_video_info_fast which includes retry"""
         return self.get_video_info_fast(url)
@@ -641,7 +557,9 @@ class OptimizedYouTubeDownloader:
             if "list=RD" in url:
                 logger.info("Mix Playlist detected (RD...), stripping list parameter")
                 url = re.sub(r'[?&]list=RD[^&]*', '', url)
-                
+
+            url = self._normalize_udemy_url(url)
+
             ydl_opts = {
                 'quiet': True,
                 'no_warnings': True,
@@ -667,9 +585,21 @@ class OptimizedYouTubeDownloader:
                     }
                 },
             }
-            
+
+            # Explicit user-selected cookie source (e.g. for login-required
+            # sites like Udemy) takes priority over the automatic retry logic below
+            if self.cookie_file:
+                ydl_opts['cookiefile'] = self.cookie_file
+            elif self.cookies_from_browser:
+                ydl_opts['cookiesfrombrowser'] = (self.cookies_from_browser,)
+
+            if self.login_username and self.login_password:
+                ydl_opts['username'] = self.login_username
+                ydl_opts['password'] = self.login_password
+
             # On retry attempts, try progressively more aggressive options
-            if attempt >= 1:
+            if (attempt >= 1 and not self.cookies_from_browser and not self.cookie_file
+                    and not (self.login_username and self.login_password)):
                 # Try with browser cookies for authentication
                 for browser in ['chrome', 'firefox', 'edge', 'brave']:
                     try:
@@ -689,12 +619,25 @@ class OptimizedYouTubeDownloader:
                     }
                 }
                 logger.info(f"Final attempt with extended timeout and all player clients")
-            
+
+            # Capture yt-dlp's internal warning/error messages instead of letting
+            # them go to the console, so we can explain *why* extraction failed
+            # even when it fails silently (returns None) rather than raising -
+            # this commonly happens with a failed Udemy login under ignoreerrors.
+            error_capture = _YdlErrorCapture()
+            ydl_opts['logger'] = error_capture
+
             with YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                
+
                 if not info:
-                    logger.warning(f"yt-dlp returned None for URL: {url}")
+                    captured = ' | '.join(error_capture.messages)
+                    logger.warning(f"yt-dlp returned None for URL: {url} (captured: {captured})")
+                    auth_msg = self._auth_error_message(captured) if captured else None
+                    if auth_msg:
+                        return {'error': auth_msg}
+                    if captured:
+                        return {'error': f'Video bilgisi alınamadı: {captured[:200]}'}
                     return {'error': 'Video bilgisi alınamadı. Video silinmiş veya kısıtlı olabilir.'}
                 
                 # Check if it's a playlist
@@ -717,6 +660,7 @@ class OptimizedYouTubeDownloader:
                     result = {
                         'title': info.get('title', 'Bilinmiyor'),
                         'thumbnail': info.get('thumbnail', ''),
+                        'video_id': info.get('id', ''),
                         'is_playlist': False,
                         'method': 'yt-dlp'
                     }
@@ -727,7 +671,10 @@ class OptimizedYouTubeDownloader:
             error_msg = str(e)
             logger.error(f"get_video_info_ytdlp error (attempt {attempt + 1}): {error_msg}")
             
-            if "timeout" in error_msg.lower():
+            auth_msg = self._auth_error_message(error_msg)
+            if auth_msg:
+                return {'error': auth_msg}
+            elif "timeout" in error_msg.lower():
                 return {'error': 'Bağlantı zaman aşımı. İnternet bağlantınızı kontrol edin.'}
             elif "not available" in error_msg.lower() or "unavailable" in error_msg.lower():
                 return {'error': 'Video bulunamadı veya kaldırılmış.'}
@@ -747,6 +694,7 @@ class OptimizedYouTubeDownloader:
     def get_playlist_entries(self, url: str) -> List[Dict[str, Any]]:
         """Get detailed playlist entries for selection"""
         try:
+            url = self._normalize_udemy_url(url)
             ydl_opts = {
                 'quiet': True,
                 'no_warnings': True,
@@ -763,13 +711,22 @@ class OptimizedYouTubeDownloader:
                     }
                 },
             }
-            
+
+            if self.cookie_file:
+                ydl_opts['cookiefile'] = self.cookie_file
+            elif self.cookies_from_browser:
+                ydl_opts['cookiesfrombrowser'] = (self.cookies_from_browser,)
+
+            if self.login_username and self.login_password:
+                ydl_opts['username'] = self.login_username
+                ydl_opts['password'] = self.login_password
+
             with YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                
+
                 if not info or 'entries' not in info:
                     return []
-                
+
                 entries = []
                 for i, entry in enumerate(info['entries'][:config.MAX_PLAYLIST_VIDEOS]):
                     if entry:
@@ -797,7 +754,16 @@ class OptimizedYouTubeDownloader:
             # Clear caches
             self._video_info_cache.clear()
             self._thumbnail_cache.clear()
-            
+
+            # Remove any temporary cookie file we generated ourselves
+            temp_cookie_file = getattr(self, '_temp_cookie_file', None)
+            if temp_cookie_file:
+                try:
+                    os.remove(temp_cookie_file)
+                except OSError:
+                    pass
+                self._temp_cookie_file = None
+
             pass
             
         except Exception as e:
