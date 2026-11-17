@@ -73,7 +73,6 @@
 Detaylı teknik kılavuzlar için `docs/` dizinini inceleyebilirsiniz:
 - [🏛️ Mimari ve Tasarım Kılavuzu](docs/ARCHITECTURE.md)
 - [🔑 Oturum ve Çerez Yönetimi (Udemy)](docs/AUTHENTICATION.md)
-- [🏗️ Standalone EXE Derleme Rehberi](docs/BUILD_GUIDE.md)
 
 ---
 
@@ -100,13 +99,9 @@ Streamscribe/
 │   ├── config.py               # Uygulama sabitleri ve yapılandırma
 │   └── legacy/                 # Eski sürümlerden arşivlenen modüller
 ├── docs/                       # Geliştirici ve kullanıcı dokümantasyonu
-├── ffmpeg/                     # Taşınabilir yerel FFmpeg ikilileri
 ├── logo/                       # İkon ve görseller
-├── releases/                   # Derlenmiş hazır EXE sürümleri
 ├── main.py                     # Temiz PySide6 giriş noktası
-├── requirements.txt            # Bağımlılık listesi
-├── Streamscribe.spec           # PyInstaller derleme profili
-└── build.py                    # Tek tıkla EXE derleme betiği
+└── requirements.txt            # Bağımlılık listesi
 ```
 
 ---
@@ -143,24 +138,6 @@ Streamscribe/
    ```bash
    python main.py
    ```
-
----
-
-## 📦 Dağıtım, Kurulum Sihirbazı & Derleme (Build)
-
-Uygulama sürümü kök dizindeki [`version.ini`](version.ini) dosyasından tek merkezden yönetilir (Geliştirici bilgisi statik olarak **Semi Eren Gökyıldız** şeklindedir).
-
-- **Sadece Uygulama & Portable Arşiv Derlemek İçin:**
-  ```powershell
-  python build.py
-  ```
-  Çıktılar `releases/v3.2/` altında (`Streamscribe_v3.2/` ve `Streamscribe_v3.2_Portable.zip`) oluşturulur.
-
-- **Hem Derleme Yapıp Hem de Inno Setup Kurulum Sihirbazı (`Setup.exe`) Üretmek İçin:**
-  ```powershell
-  .\setup.cmd
-  ```
-  Kurulum dosyası `release_setup/Streamscribe_v3.2_Setup.exe` dizininde oluşturulur.
 
 ---
 

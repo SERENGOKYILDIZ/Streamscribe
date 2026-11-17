@@ -6,6 +6,11 @@ releases/
 release_setup/
 dist/
 build/
+hooks/
+build.py
+version.ini
+GEMINI.md
+docs/BUILD_GUIDE.md
 *.cmd
 *.bat
 *.iss

@@ -26,13 +26,10 @@ Streamscribe/
 │   │   └── views/              # DownloaderView, QueueView, HistoryView, SettingsView
 │   ├── config.py               # Uygulama sabitleri ve yapılandırma
 │   └── legacy/                 # Eski sürümlerden arşivlenen kodlar
-├── ffmpeg/                     # Taşınabilir yerel FFmpeg ikilileri
 ├── logo/                       # İkon ve görsel varlıklar
-├── releases/                   # Derlenmiş hazır EXE sürümleri
 ├── docs/                       # Geliştirici ve kullanıcı dokümantasyonu
 ├── main.py                     # Temiz PySide6 giriş noktası
-├── requirements.txt            # Bağımlılık listesi
-└── build.py                    # Standalone EXE derleme betiği
+└── requirements.txt            # Bağımlılık listesi
 ```
 
 ---
