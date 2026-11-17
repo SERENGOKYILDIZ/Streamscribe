@@ -26,14 +26,21 @@ class FFmpegHelper:
         if cls._cached_ffmpeg_path and os.path.exists(cls._cached_ffmpeg_path):
             return cls._cached_ffmpeg_path
 
-        # 1. Project local ffmpeg folder candidates
-        candidates = [
+        # 1. Project local ffmpeg folder candidates (including PyInstaller _MEIPASS)
+        meipass = getattr(sys, "_MEIPASS", None)
+        candidates = []
+        if meipass:
+            candidates.extend([
+                Path(meipass) / "ffmpeg" / "bin" / "ffmpeg.exe",
+                Path(meipass) / "ffmpeg" / "ffmpeg.exe",
+            ])
+        candidates.extend([
             Path.cwd() / "ffmpeg" / "bin" / "ffmpeg.exe",
             Path.cwd() / "ffmpeg" / "ffmpeg.exe",
             Path(__file__).resolve().parent.parent.parent / "ffmpeg" / "bin" / "ffmpeg.exe",
             Path(__file__).resolve().parent.parent / "ffmpeg" / "bin" / "ffmpeg.exe",
             Path.cwd() / "bin" / "ffmpeg.exe",
-        ]
+        ])
         for candidate in candidates:
             if candidate.exists() and os.access(candidate, os.X_OK):
                 cls._cached_ffmpeg_path = str(candidate)

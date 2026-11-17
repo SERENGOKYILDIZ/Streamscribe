@@ -41,13 +41,20 @@ class MainWindow(QMainWindow):
         self._connect_signals()
 
     def _set_app_icon(self):
-        candidates = [
+        meipass = getattr(sys, "_MEIPASS", None)
+        candidates = []
+        if meipass:
+            candidates.extend([
+                Path(meipass) / "logo" / "favicon.ico",
+                Path(meipass) / "logo" / "logo.png",
+            ])
+        candidates.extend([
             Path.cwd() / "logo" / "favicon.ico",
             Path.cwd() / "logo" / "logo.png",
             Path(__file__).resolve().parent.parent.parent / "logo" / "favicon.ico",
             Path(__file__).resolve().parent.parent.parent / "logo" / "logo.png",
             Path(__file__).resolve().parent.parent / "logo" / "favicon.ico",
-        ]
+        ])
         for c in candidates:
             if c.exists():
                 self.setWindowIcon(QIcon(str(c)))
