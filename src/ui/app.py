@@ -41,10 +41,12 @@ class MainWindow(QMainWindow):
         self._connect_signals()
 
     def _set_app_icon(self):
-        project_root = Path(__file__).resolve().parent.parent
         candidates = [
-            project_root / "logo" / "icon.ico",
-            project_root / "logo" / "logo.png",
+            Path.cwd() / "logo" / "favicon.ico",
+            Path.cwd() / "logo" / "logo.png",
+            Path(__file__).resolve().parent.parent.parent / "logo" / "favicon.ico",
+            Path(__file__).resolve().parent.parent.parent / "logo" / "logo.png",
+            Path(__file__).resolve().parent.parent / "logo" / "favicon.ico",
         ]
         for c in candidates:
             if c.exists():

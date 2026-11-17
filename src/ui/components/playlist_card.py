@@ -160,5 +160,7 @@ class PlaylistCard(QFrame):
             'audio_only': "Ses" in quality or "MP3" in quality,
             'embed_subs': True,
             'transcribe_after_download': self.transcribe_check.isChecked(),
+            'playlist_id': self.metadata.url if self.metadata else "",
+            'playlist_title': self.metadata.title if self.metadata else "Oynatma Listesi",
         }
         self.bulk_download_requested.emit(selected_items, options)

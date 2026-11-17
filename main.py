@@ -9,8 +9,11 @@ import sys
 import os
 from pathlib import Path
 
-# Add project root to sys.path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add project root and src directory to sys.path
+PROJECT_ROOT = Path(__file__).resolve().parent
+SRC_DIR = PROJECT_ROOT / "src"
+sys.path.insert(0, str(SRC_DIR))
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt

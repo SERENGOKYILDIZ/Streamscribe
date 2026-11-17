@@ -187,7 +187,18 @@ class DownloaderView(QWidget):
         self.navigate_to_queue.emit()
 
     def _on_bulk_download_requested(self, items: list, options: dict):
-        for item in items:
+        import uuid
+        import re
+        p_id = options.get('playlist_id') or str(uuid.uuid4())[:8]
+        p_title = options.get('playlist_title') or "Oynatma Listesi"
+        total = len(items)
+
+        # Dedicated subfolder for playlist
+        settings = config_service.settings
+        safe_title = re.sub(r'[\\/*?:"<>|]', '', p_title).strip() or "Oynatma_Listesi"
+        playlist_output_dir = os.path.join(settings.download_dir, safe_title)
+
+        for idx, item in enumerate(items, 1):
             task = QueueTask(
                 url=item.get('url', ''),
                 title=item.get('title', 'Video'),
@@ -195,7 +206,12 @@ class DownloaderView(QWidget):
                 quality=options['quality'],
                 audio_only=options['audio_only'],
                 embed_subs=options['embed_subs'],
-                transcribe_after_download=options['transcribe_after_download']
+                transcribe_after_download=options['transcribe_after_download'],
+                output_dir=playlist_output_dir,
+                playlist_id=p_id,
+                playlist_title=p_title,
+                playlist_index=idx,
+                playlist_total=total
             )
             queue_manager.add_task(task)
 

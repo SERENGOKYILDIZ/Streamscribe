@@ -26,12 +26,13 @@ class FFmpegHelper:
         if cls._cached_ffmpeg_path and os.path.exists(cls._cached_ffmpeg_path):
             return cls._cached_ffmpeg_path
 
-        # 1. Project local ffmpeg folder
-        project_root = Path(__file__).resolve().parent.parent
+        # 1. Project local ffmpeg folder candidates
         candidates = [
-            project_root / "ffmpeg" / "bin" / "ffmpeg.exe",
-            project_root / "ffmpeg" / "ffmpeg.exe",
-            project_root / "bin" / "ffmpeg.exe",
+            Path.cwd() / "ffmpeg" / "bin" / "ffmpeg.exe",
+            Path.cwd() / "ffmpeg" / "ffmpeg.exe",
+            Path(__file__).resolve().parent.parent.parent / "ffmpeg" / "bin" / "ffmpeg.exe",
+            Path(__file__).resolve().parent.parent / "ffmpeg" / "bin" / "ffmpeg.exe",
+            Path.cwd() / "bin" / "ffmpeg.exe",
         ]
         for candidate in candidates:
             if candidate.exists() and os.access(candidate, os.X_OK):

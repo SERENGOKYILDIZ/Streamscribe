@@ -145,7 +145,7 @@ class DownloadEngine:
                 langs = [l.strip() for l in sub_langs.split(",") if l.strip()]
                 ydl_opts.update({
                     'writesubtitles': True,
-                    'writeautomaticsub': True,
+                    'writeautomaticsub': False,  # Avoid aggressive YouTube 429 rate limits on auto-captions
                     'subtitleslangs': langs,
                 })
                 ydl_opts['postprocessors'].extend([
@@ -179,5 +179,22 @@ class DownloadEngine:
             logger.info("Download explicitly cancelled by user.")
             raise
         except Exception as e:
+            err_str = str(e)
+            # If download failed due to subtitles (429 Too Many Requests, unavailable subs, etc.), fallback to clean video download
+            if embed_subs and ("subtitles" in err_str.lower() or "429" in err_str):
+                logger.warning(
+                    f"Altyazı indirilemedi ({err_str[:80]}...). Video altyazısız olarak indirilmeye devam ediliyor."
+                )
+                return self.download(
+                    url=url,
+                    quality=quality,
+                    audio_only=audio_only,
+                    embed_subs=False,
+                    sub_langs=sub_langs,
+                    cookie_file=cookie_file,
+                    cookies_from_browser=cookies_from_browser,
+                    progress_callback=progress_callback
+                )
+
             logger.error(f"Download failed: {str(e)}")
             raise

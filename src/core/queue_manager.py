@@ -37,6 +37,12 @@ class QueueTask:
     transcribe_after_download: bool = False
     output_dir: str = ""
     
+    # Playlist Grouping
+    playlist_id: Optional[str] = None
+    playlist_title: Optional[str] = None
+    playlist_index: int = 0
+    playlist_total: int = 0
+
     # Live Status
     status: str = "queued"  # "queued", "downloading", "transcribing", "completed", "failed", "cancelled"
     percent: float = 0.0
@@ -131,7 +137,17 @@ class QueueManager:
             return
 
         settings = config_service.settings
-        output_dir = task.output_dir or settings.download_dir
+        base_dir = task.output_dir or settings.download_dir
+
+        # Group playlist downloads in a dedicated subfolder named after the playlist
+        if task.playlist_title and not task.output_dir:
+            import re
+            safe_title = re.sub(r'[\\/*?:"<>|]', '', task.playlist_title).strip() or "Oynatma_Listesi"
+            output_dir = os.path.join(base_dir, safe_title)
+        else:
+            output_dir = base_dir
+
+        task.output_dir = output_dir
         engine = DownloadEngine(output_dir)
         task.engine = engine
         task.status = "downloading"

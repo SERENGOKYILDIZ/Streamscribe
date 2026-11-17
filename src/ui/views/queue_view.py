@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 StreamScribe Queue View
-Live download queue list with progress bars, speeds, and queue-wide actions.
+Live download queue list with support for standalone items and grouped playlists.
 """
 
 from typing import Dict
@@ -15,14 +15,16 @@ import qtawesome as qta
 
 from core.queue_manager import queue_manager, QueueTask
 from ui.components.queue_item_widget import QueueItemWidget
+from ui.components.playlist_group_widget import PlaylistGroupWidget
 
 
 class QueueView(QWidget):
-    """View displaying active, queued, and finished download tasks."""
+    """View displaying active, queued, and finished download tasks with playlist grouping."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.item_widgets: Dict[str, QueueItemWidget] = {}
+        self.playlist_groups: Dict[str, PlaylistGroupWidget] = {}
         self._setup_ui()
         self._connect_signals()
 
@@ -63,7 +65,7 @@ class QueueView(QWidget):
         self.scroll_content = QWidget()
         self.tasks_layout = QVBoxLayout(self.scroll_content)
         self.tasks_layout.setContentsMargins(0, 8, 0, 8)
-        self.tasks_layout.setSpacing(12)
+        self.tasks_layout.setSpacing(14)
 
         # Empty Queue Placeholder
         self.empty_label = QLabel("Şu anda kuyrukta bekleyen bir indirme yok.\nİndirici sekmesinden video ekleyebilirsiniz.")
@@ -85,16 +87,39 @@ class QueueView(QWidget):
 
     def _on_task_added(self, task: QueueTask):
         self.empty_label.setVisible(False)
-        widget = QueueItemWidget(task, self.scroll_content)
-        widget.cancel_clicked.connect(self._on_task_cancel_requested)
-        # Insert before stretch
-        self.tasks_layout.insertWidget(self.tasks_layout.count() - 1, widget)
-        self.item_widgets[task.task_id] = widget
+
+        # 1. Grouped Playlist Task
+        if task.playlist_id:
+            group = self.playlist_groups.get(task.playlist_id)
+            if not group:
+                group = PlaylistGroupWidget(
+                    playlist_id=task.playlist_id,
+                    playlist_title=task.playlist_title or "Oynatma Listesi",
+                    total_count=task.playlist_total,
+                    parent=self.scroll_content
+                )
+                self.tasks_layout.insertWidget(self.tasks_layout.count() - 1, group)
+                self.playlist_groups[task.playlist_id] = group
+
+            widget = QueueItemWidget(task, parent=group.items_container)
+            widget.cancel_clicked.connect(self._on_task_cancel_requested)
+            group.add_task_widget(task, widget)
+            self.item_widgets[task.task_id] = widget
+
+        # 2. Standalone Single Video Task
+        else:
+            widget = QueueItemWidget(task, parent=self.scroll_content)
+            widget.cancel_clicked.connect(self._on_task_cancel_requested)
+            self.tasks_layout.insertWidget(self.tasks_layout.count() - 1, widget)
+            self.item_widgets[task.task_id] = widget
 
     def _on_task_updated(self, task: QueueTask):
-        widget = self.item_widgets.get(task.task_id)
-        if widget:
-            widget.update_task(task)
+        if task.playlist_id and task.playlist_id in self.playlist_groups:
+            self.playlist_groups[task.playlist_id].update_task(task)
+        else:
+            widget = self.item_widgets.get(task.task_id)
+            if widget:
+                widget.update_task(task)
 
     def _on_task_cancel_requested(self, task_id: str):
         queue_manager.cancel_task(task_id)
@@ -110,15 +135,27 @@ class QueueView(QWidget):
             queue_manager.cancel_all()
 
     def _clear_finished(self):
-        to_remove = []
+        to_remove_tasks = []
         for task_id, widget in self.item_widgets.items():
             task = queue_manager.get_task(task_id)
             if task and task.status in ("completed", "cancelled", "failed"):
-                widget.deleteLater()
-                to_remove.append(task_id)
+                if not task.playlist_id:
+                    widget.deleteLater()
+                    to_remove_tasks.append(task_id)
 
-        for tid in to_remove:
+        for tid in to_remove_tasks:
             del self.item_widgets[tid]
 
-        if not self.item_widgets:
+        # Check completed playlist groups
+        to_remove_groups = []
+        for pid, group in self.playlist_groups.items():
+            all_done = all(t.status in ("completed", "cancelled", "failed") for t in group.tasks.values())
+            if all_done:
+                group.deleteLater()
+                to_remove_groups.append(pid)
+
+        for pid in to_remove_groups:
+            del self.playlist_groups[pid]
+
+        if not self.item_widgets and not self.playlist_groups:
             self.empty_label.setVisible(True)

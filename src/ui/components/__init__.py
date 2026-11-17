@@ -2,5 +2,6 @@
 from ui.components.media_card import MediaCard
 from ui.components.queue_item_widget import QueueItemWidget
 from ui.components.playlist_card import PlaylistCard
+from ui.components.playlist_group_widget import PlaylistGroupWidget
 
-__all__ = ["MediaCard", "QueueItemWidget", "PlaylistCard"]
+__all__ = ["MediaCard", "QueueItemWidget", "PlaylistCard", "PlaylistGroupWidget"]
