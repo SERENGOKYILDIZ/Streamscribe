@@ -3,6 +3,7 @@
 # Special / Local Bundles
 /ffmpeg/*
 releases/
+release_setup/
 dist/
 build/
 

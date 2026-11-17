@@ -7,7 +7,7 @@ PySide6-powered responsive, modern desktop interface.
 
 import sys
 from pathlib import Path
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, QTimer
 from PySide6.QtGui import QIcon, QFont
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
@@ -125,23 +125,50 @@ class MainWindow(QMainWindow):
         # 2. Right Stacked Content
         self.stack = QStackedWidget()
 
+        # Primary view loaded immediately for instant startup
         self.downloader_view = DownloaderView()
         self.downloader_view.navigate_to_queue.connect(lambda: self._switch_view(1))
         self.stack.addWidget(self.downloader_view)
 
-        self.queue_view = QueueView()
-        self.stack.addWidget(self.queue_view)
-
-        self.history_view = HistoryView()
-        self.stack.addWidget(self.history_view)
-
-        self.settings_view = SettingsView()
-        self.stack.addWidget(self.settings_view)
+        # Placeholders for lazy-loaded views
+        self.queue_view = None
+        self.history_view = None
+        self.settings_view = None
 
         main_layout.addWidget(self.stack, stretch=1)
 
         # Activate initial view
         self._switch_view(0)
+
+        # Defer background initialization of secondary views for instant window display
+        QTimer.singleShot(60, self._init_deferred_views)
+
+    def _init_deferred_views(self):
+        """Preload secondary views in background after window is already displayed."""
+        if self.queue_view is None:
+            self._get_or_create_view(1)
+        if self.history_view is None:
+            self._get_or_create_view(2)
+        if self.settings_view is None:
+            self._get_or_create_view(3)
+
+    def _get_or_create_view(self, index: int):
+        if index == 1:
+            if self.queue_view is None:
+                self.queue_view = QueueView()
+                self.stack.addWidget(self.queue_view)
+            return self.queue_view
+        elif index == 2:
+            if self.history_view is None:
+                self.history_view = HistoryView()
+                self.stack.addWidget(self.history_view)
+            return self.history_view
+        elif index == 3:
+            if self.settings_view is None:
+                self.settings_view = SettingsView()
+                self.stack.addWidget(self.settings_view)
+            return self.settings_view
+        return self.downloader_view
 
     def _create_nav_button(self, text: str, icon_name: str, index: int) -> QPushButton:
         btn = QPushButton(text)
@@ -154,7 +181,8 @@ class MainWindow(QMainWindow):
         return btn
 
     def _switch_view(self, index: int):
-        self.stack.setCurrentIndex(index)
+        target_widget = self._get_or_create_view(index)
+        self.stack.setCurrentWidget(target_widget)
         for i, btn in enumerate(self.nav_buttons):
             btn.setChecked(i == index)
             if i == index:
@@ -165,7 +193,7 @@ class MainWindow(QMainWindow):
             btn.style().polish(btn)
 
         # Refresh history when switching to history view
-        if index == 2:
+        if index == 2 and self.history_view:
             self.history_view.refresh_history()
 
     def _connect_signals(self):

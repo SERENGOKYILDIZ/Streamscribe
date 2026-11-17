@@ -43,13 +43,16 @@ def main():
     # Apply modern dark theme stylesheet
     app.setStyleSheet(DARK_THEME_QSS)
 
-    # Check FFmpeg
-    if not FFmpegHelper.is_available():
-        logger.warning("FFmpeg executable could not be detected. Merging and audio conversions may be limited.")
-
-    # Create and display main window
+    # Create and display main window immediately (< 200ms startup)
     window = MainWindow()
     window.show()
+
+    # Non-blocking FFmpeg check right after window is visible
+    from PySide6.QtCore import QTimer
+    def _verify_ffmpeg():
+        if not FFmpegHelper.is_available():
+            logger.warning("FFmpeg executable could not be detected. Merging and audio conversions may be limited.")
+    QTimer.singleShot(150, _verify_ffmpeg)
 
     logger.info("StreamScribe window loaded successfully.")
     sys.exit(app.exec())

@@ -1,6 +1,6 @@
 # StreamScribe — Mimari ve Sistem Tasarımı
 
-Bu doküman, **StreamScribe** v3.1.0'ın katmanlı mimarisini, veri akışını, eşzamanlı görev yönetimini ve bileşenler arası iletişim modelini açıklar.
+Bu doküman, **StreamScribe** v3.2'nin katmanlı mimarisini, veri akışını, eşzamanlı görev yönetimini ve bileşenler arası iletişim modelini açıklar.
 
 ---
 

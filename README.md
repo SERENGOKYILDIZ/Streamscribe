@@ -3,14 +3,14 @@
 # 🎬 StreamScribe
 ### Ultra-Hızlı Modern Video İndirici & Whisper Yapay Zeka Transkripsiyonu
 
-[![En Son Sürümü İndir](https://img.shields.io/github/v/release/SERENGOKYILDIZ/Streamscribe?label=⬇️%20En%20Son%20Sürümü%20İndir%20(Standalone.exe)&style=for-the-badge&logo=windows&logoColor=white&color=2563EB)](https://github.com/SERENGOKYILDIZ/Streamscribe/releases/latest)
+[![En Son Sürümü İndir](https://img.shields.io/github/v/release/SERENGOKYILDIZ/Streamscribe?label=⬇️%20En%20Son%20Sürümü%20İndir%20(Setup%20%2F%20Portable)&style=for-the-badge&logo=windows&logoColor=white&color=2563EB)](https://github.com/SERENGOKYILDIZ/Streamscribe/releases/latest)
 [![Tüm Sürümler](https://img.shields.io/badge/📦_Tüm_Sürümler-GitHub_Releases-1E293B?style=for-the-badge&logo=github&logoColor=white)](https://github.com/SERENGOKYILDIZ/Streamscribe/releases)
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)
 ![GUI](https://img.shields.io/badge/GUI-PySide6%20(Qt6)-41CD52.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Version](https://img.shields.io/badge/Version-v3.1.2-brightgreen.svg)
+![Version](https://img.shields.io/badge/Version-v3.2-brightgreen.svg)
 
 </div>
 
@@ -18,7 +18,7 @@
 
 **StreamScribe**, [yt-dlp](https://github.com/yt-dlp/yt-dlp), [PySide6 (Qt)](https://doc.qt.io/qtforpython/) ve [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (CTranslate2) üzerine inşa edilmiş, modern, şık ve yüksek performanslı bir masaüstü video indirme ve yapay zeka altyazı/transkripsiyon uygulamasıdır.
 
-> 💡 **Kurulum veya Python gerekmez:** Tek bir `.exe` dosyasını yukarıdaki butona tıklayarak doğrudan en son sürümün releases sayfasından indirebilirsiniz. Dahili FFmpeg ve tüm bağımlılıklar pakete dahildir.
+> 💡 **Kurulum veya Python gerekmez:** Yukarıdaki butona tıklayarak en son sürümün Setup kurulum sihirbazını (`Streamscribe_v3.2_Setup.exe`) veya taşınabilir arşivini (`Portable.zip`) indirebilirsiniz. Dahili FFmpeg ve tüm bağımlılıklar pakete dahildir; 0.3 saniyede anında açılır.
 
 ---
 
@@ -31,7 +31,7 @@
 
 ---
 
-## 🚀 Öne Çıkan Özellikler (v3.1.2)
+## 🚀 Öne Çıkan Özellikler (v3.2)
 
 ### 🎨 Modern & Ferah PySide6 (Qt) Arayüzü
 - **Sıfırdan Yenilenen Mimari:** Eski hantal arayüz yerine, akıcı ve duyarlı PySide6 (Qt) mimarisi.
@@ -146,15 +146,21 @@ Streamscribe/
 
 ---
 
-## 📦 Bağımsız (Standalone) EXE Derleme
+## 📦 Dağıtım, Kurulum Sihirbazı & Derleme (Build)
 
-Harici Python veya FFmpeg gerektirmeyen tek bir `.exe` üretmek için:
+Uygulama sürümü kök dizindeki [`version.ini`](version.ini) dosyasından tek merkezden yönetilir (Geliştirici bilgisi statik olarak **Semi Eren Gökyıldız** şeklindedir).
 
-```powershell
-python build.py
-```
+- **Sadece Uygulama & Portable Arşiv Derlemek İçin:**
+  ```powershell
+  python build.py
+  ```
+  Çıktılar `releases/v3.2/` altında (`Streamscribe_v3.2/` ve `Streamscribe_v3.2_Portable.zip`) oluşturulur.
 
-Derlenen dosya `releases/v3.1.2/Streamscribe_v3.1.2_Standalone.exe` dizininde oluşturulur.
+- **Hem Derleme Yapıp Hem de Inno Setup Kurulum Sihirbazı (`Setup.exe`) Üretmek İçin:**
+  ```powershell
+  .\setup.cmd
+  ```
+  Kurulum dosyası `release_setup/Streamscribe_v3.2_Setup.exe` dizininde oluşturulur.
 
 ---
 

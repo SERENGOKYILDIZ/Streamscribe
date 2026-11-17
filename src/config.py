@@ -6,17 +6,42 @@ Centralized configuration management for the application
 """
 
 import os
+import sys
+import configparser
 from pathlib import Path
 from typing import Dict, Any, Optional
 import json
 
 
+def load_version_from_ini(default: str = "3.2") -> str:
+    """Read application version from root version.ini file."""
+    meipass = getattr(sys, "_MEIPASS", None)
+    candidates = []
+    if meipass:
+        candidates.append(Path(meipass) / "version.ini")
+    candidates.extend([
+        Path(__file__).resolve().parent.parent / "version.ini",
+        Path.cwd() / "version.ini",
+    ])
+    for path in candidates:
+        if path.is_file():
+            try:
+                parser = configparser.ConfigParser()
+                parser.read(path, encoding="utf-8")
+                ver = parser.get("app", "version", fallback=default).strip()
+                if ver:
+                    return ver
+            except Exception:
+                pass
+    return default
+
+
 class Config:
     """Application configuration class"""
     
-    # Application Info
+    # Application Info (Version loaded dynamically from version.ini; Developer is static)
     APP_NAME = "StreamScribe"
-    APP_VERSION = "3.1.2"
+    APP_VERSION = load_version_from_ini("3.2")
     APP_AUTHOR = "Semi Eren Gökyıldız"
     
     # Performance Settings

@@ -6,6 +6,7 @@ Discovers and manages FFmpeg binaries and common media operations.
 """
 
 import os
+import sys
 import shutil
 import subprocess
 from pathlib import Path
