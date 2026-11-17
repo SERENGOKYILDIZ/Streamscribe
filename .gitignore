@@ -1,11 +1,15 @@
 # StreamScribe .gitignore
 
-# Special / Local Bundles
+# Special / Local Bundles & Build Scripts
 /ffmpeg/*
 releases/
 release_setup/
 dist/
 build/
+*.cmd
+*.bat
+*.iss
+*.spec
 
 # Virtual environments
 .venv/
