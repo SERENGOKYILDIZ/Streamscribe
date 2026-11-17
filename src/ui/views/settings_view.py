@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 import qtawesome as qta
 
 from services.config_service import config_service, AppSettings
+from config import Config, load_version_from_ini
 
 
 class SettingsView(QWidget):
@@ -182,6 +183,24 @@ class SettingsView(QWidget):
         auth_layout.addLayout(cookie_btn_row)
 
         form_layout.addWidget(auth_card)
+
+        # 5. About / Version Card
+        about_card = QFrame()
+        about_card.setProperty("class", "CardFrame")
+        about_layout = QVBoxLayout(about_card)
+        about_layout.setContentsMargins(18, 14, 18, 14)
+        about_layout.setSpacing(6)
+
+        live_ver = load_version_from_ini()
+        about_title = QLabel(f"ℹ️ {Config.APP_NAME} — v{live_ver}")
+        about_title.setStyleSheet("font-size: 14px; font-weight: 700; color: #38BDF8;")
+        about_layout.addWidget(about_title)
+
+        about_dev = QLabel(f"Geliştirici: {Config.APP_AUTHOR}  •  Motor: yt-dlp + faster-whisper (CTranslate2)")
+        about_dev.setStyleSheet("color: #94A3B8; font-size: 12px;")
+        about_layout.addWidget(about_dev)
+
+        form_layout.addWidget(about_card)
 
         form_layout.addStretch()
         scroll.setWidget(content)

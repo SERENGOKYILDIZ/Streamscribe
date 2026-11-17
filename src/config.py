@@ -16,13 +16,18 @@ import json
 def load_version_from_ini(default: str = "3.2") -> str:
     """Read application version from root version.ini file."""
     meipass = getattr(sys, "_MEIPASS", None)
-    candidates = []
-    if meipass:
-        candidates.append(Path(meipass) / "version.ini")
-    candidates.extend([
+    exe_dir = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else None
+    candidates = [
         Path(__file__).resolve().parent.parent / "version.ini",
+        Path(__file__).resolve().parent.parent.parent / "version.ini",
         Path.cwd() / "version.ini",
-    ])
+    ]
+    if exe_dir:
+        candidates.insert(0, exe_dir / "version.ini")
+        candidates.insert(1, exe_dir / "_internal" / "version.ini")
+    if meipass:
+        candidates.insert(0, Path(meipass) / "version.ini")
+
     for path in candidates:
         if path.is_file():
             try:

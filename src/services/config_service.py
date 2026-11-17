@@ -10,14 +10,14 @@ import json
 from pathlib import Path
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, asdict, field
-from config import Config
+from config import Config, load_version_from_ini
 
 
 @dataclass
 class AppSettings:
     # General
     app_name: str = Config.APP_NAME
-    app_version: str = field(default_factory=lambda: Config.APP_VERSION)
+    app_version: str = field(default_factory=load_version_from_ini)
     app_author: str = Config.APP_AUTHOR
     theme_mode: str = "dark"           # "dark", "light", "system"
     theme_color: str = "blue"          # "blue", "purple", "emerald"
@@ -77,11 +77,19 @@ class ConfigService:
             with open(self.config_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
             # Filter valid fields for AppSettings and enforce latest version & static author
+            live_version = load_version_from_ini()
             valid_keys = AppSettings.__dataclass_fields__.keys()
             filtered_data = {k: v for k, v in data.items() if k in valid_keys}
-            filtered_data["app_version"] = Config.APP_VERSION
+            needs_sync = (
+                filtered_data.get("app_version") != live_version
+                or filtered_data.get("app_author") != Config.APP_AUTHOR
+            )
+            filtered_data["app_version"] = live_version
             filtered_data["app_author"] = Config.APP_AUTHOR
-            return AppSettings(**filtered_data)
+            settings = AppSettings(**filtered_data)
+            if needs_sync:
+                self.save_settings(settings)
+            return settings
         except Exception:
             return AppSettings()
 

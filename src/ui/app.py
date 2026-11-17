@@ -20,6 +20,7 @@ from ui.views import DownloaderView, QueueView, HistoryView, SettingsView
 from core.queue_manager import queue_manager, QueueTask
 from services.config_service import config_service
 from services.logger import get_logger
+from config import Config, load_version_from_ini
 
 logger = get_logger("app")
 
@@ -29,7 +30,9 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"{config_service.settings.app_name} v{config_service.settings.app_version}")
+        self.app_version = load_version_from_ini()
+        config_service.settings.app_version = self.app_version
+        self.setWindowTitle(f"{Config.APP_NAME} v{self.app_version}")
         self.resize(1200, 760)
         self.setMinimumSize(1000, 640)
 
@@ -86,12 +89,12 @@ class MainWindow(QMainWindow):
 
         title_vbox = QVBoxLayout()
         title_vbox.setSpacing(0)
-        title_lbl = QLabel(config_service.settings.app_name)
+        title_lbl = QLabel(Config.APP_NAME)
         title_lbl.setObjectName("AppLogoTitle")
-        ver_lbl = QLabel(f"v{config_service.settings.app_version}")
-        ver_lbl.setObjectName("AppVersionLabel")
+        self.ver_lbl = QLabel(f"v{self.app_version}")
+        self.ver_lbl.setObjectName("AppVersionLabel")
         title_vbox.addWidget(title_lbl)
-        title_vbox.addWidget(ver_lbl)
+        title_vbox.addWidget(self.ver_lbl)
         logo_row.addLayout(title_vbox)
         logo_row.addStretch()
         sidebar_layout.addLayout(logo_row)
@@ -116,7 +119,7 @@ class MainWindow(QMainWindow):
         sidebar_layout.addStretch()
 
         # Footer info
-        footer_lbl = QLabel("© 2026 Semi Eren Gökyıldız\nModern Video & Audio Engine")
+        footer_lbl = QLabel(f"© 2026 {Config.APP_AUTHOR}\n{Config.APP_NAME} v{self.app_version}")
         footer_lbl.setStyleSheet("color: #475569; font-size: 10px; line-height: 1.4;")
         sidebar_layout.addWidget(footer_lbl)
 

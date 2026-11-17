@@ -3,7 +3,7 @@
 # 🎬 StreamScribe
 ### Ultra-Hızlı Modern Video İndirici & Whisper Yapay Zeka Transkripsiyonu
 
-[![En Son Sürümü İndir](https://img.shields.io/github/v/release/SERENGOKYILDIZ/Streamscribe?label=⬇️%20En%20Son%20Sürümü%20İndir%20(Setup%20%2F%20Portable)&style=for-the-badge&logo=windows&logoColor=white&color=2563EB)](https://github.com/SERENGOKYILDIZ/Streamscribe/releases/latest)
+[![En Son Sürümü İndir](https://img.shields.io/github/v/release/SERENGOKYILDIZ/Streamscribe?label=⬇️%20En%20Son%20Sürümü%20İndir%20(Setup.exe)&style=for-the-badge&logo=windows&logoColor=white&color=2563EB)](https://github.com/SERENGOKYILDIZ/Streamscribe/releases/latest)
 [![Tüm Sürümler](https://img.shields.io/badge/📦_Tüm_Sürümler-GitHub_Releases-1E293B?style=for-the-badge&logo=github&logoColor=white)](https://github.com/SERENGOKYILDIZ/Streamscribe/releases)
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)
@@ -18,7 +18,7 @@
 
 **StreamScribe**, [yt-dlp](https://github.com/yt-dlp/yt-dlp), [PySide6 (Qt)](https://doc.qt.io/qtforpython/) ve [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (CTranslate2) üzerine inşa edilmiş, modern, şık ve yüksek performanslı bir masaüstü video indirme ve yapay zeka altyazı/transkripsiyon uygulamasıdır.
 
-> 💡 **Kurulum veya Python gerekmez:** Yukarıdaki butona tıklayarak en son sürümün Setup kurulum sihirbazını (`Streamscribe_v3.2_Setup.exe`) veya taşınabilir arşivini (`Portable.zip`) indirebilirsiniz. Dahili FFmpeg ve tüm bağımlılıklar pakete dahildir; 0.3 saniyede anında açılır.
+> 💡 **Python veya ek bağımlılık gerekmez:** Yukarıdaki butona tıklayarak doğrudan en son sürümün Windows Kurulum Sihirbazını (**`Setup.exe`**) indirebilirsiniz. Dahili FFmpeg ve tüm bağımlılıklar pakete dahildir; kurulum sonrası **0.3 saniyede şıp diye** açılır.
 
 ---
 
