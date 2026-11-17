@@ -2,21 +2,21 @@
 # -*- coding: utf-8 -*-
 """
 StreamScribe Whisper Transcriber Module
-Transcribes audio/video to SRT, VTT, and TXT files using Whisper.
+High-performance audio/video transcription using faster-whisper (CTranslate2).
+Produces .srt subtitles and .txt transcripts with int8 quantization and zero PyTorch overhead.
 """
 
 import os
 import time
 from pathlib import Path
 from typing import Callable, Optional, Dict, Any, List
-from core.ffmpeg_helper import FFmpegHelper
 from services.logger import get_logger
 
 logger = get_logger("transcriber")
 
 
 class WhisperTranscriber:
-    """Manages audio transcription and subtitle generation via Whisper."""
+    """Manages audio transcription and subtitle generation via faster-whisper."""
 
     def __init__(self, model_size: str = "base", device: str = "auto"):
         self.model_size = model_size
@@ -25,10 +25,9 @@ class WhisperTranscriber:
         self.is_cancelled = False
 
     def is_available(self) -> bool:
-        """Check if whisper and torch dependencies are functional."""
+        """Check if faster-whisper is installed in the environment."""
         try:
-            import whisper
-            import torch
+            import faster_whisper  # noqa: F401
             return True
         except ImportError:
             return False
@@ -36,17 +35,35 @@ class WhisperTranscriber:
     def _load_model(self):
         if self._model is not None:
             return self._model
-            
-        import whisper
-        import torch
 
-        if self.device == "auto":
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+        from faster_whisper import WhisperModel
+
+        device = "cpu"
+        compute_type = "int8"
+
+        if self.device == "cuda":
+            device = "cuda"
+            compute_type = "float16"
+        elif self.device == "auto":
+            try:
+                import ctranslate2
+                if ctranslate2.get_cuda_device_count() > 0:
+                    device = "cuda"
+                    compute_type = "float16"
+                else:
+                    device = "cpu"
+                    compute_type = "int8"
+            except Exception:
+                device = "cpu"
+                compute_type = "int8"
         else:
             device = self.device
+            compute_type = "int8"
 
-        logger.info(f"Loading Whisper model '{self.model_size}' on device '{device}'...")
-        self._model = whisper.load_model(self.model_size, device=device)
+        logger.info(
+            f"Loading faster-whisper model '{self.model_size}' on device='{device}' (compute_type='{compute_type}')..."
+        )
+        self._model = WhisperModel(self.model_size, device=device, compute_type=compute_type)
         return self._model
 
     def cancel(self):
@@ -76,8 +93,8 @@ class WhisperTranscriber:
             f.write(text.strip())
 
     def transcribe(self, media_path: str, output_formats: Optional[List[str]] = None,
-                   language: Optional[str] = None,
-                   progress_callback: Optional[Callable[[str], None]] = None) -> Dict[str, str]:
+                    language: Optional[str] = None,
+                    progress_callback: Optional[Callable[[str], None]] = None) -> Dict[str, str]:
         """
         Transcribes the media file and saves output in requested formats (.srt, .txt).
         Returns a dictionary of generated file paths: {"srt": path, "txt": path}.
@@ -87,10 +104,10 @@ class WhisperTranscriber:
             output_formats = ["srt", "txt"]
 
         if not self.is_available():
-            raise RuntimeError("Whisper or PyTorch is not installed in the environment.")
+            raise RuntimeError("faster-whisper is not installed in the environment.")
 
         if progress_callback:
-            progress_callback("Whisper modeli yükleniyor...")
+            progress_callback("Whisper modeli yükleniyor (faster-whisper)...")
 
         model = self._load_model()
 
@@ -104,19 +121,32 @@ class WhisperTranscriber:
         if language and language != "auto":
             options["language"] = language
 
-        result = model.transcribe(media_path, **options)
+        # faster-whisper returns a generator of segments and transcription info
+        segments, info = model.transcribe(media_path, **options)
+
+        seg_list = []
+        full_text_parts = []
+        for seg in segments:
+            if self.is_cancelled:
+                raise RuntimeError("Transcription cancelled by user.")
+            seg_list.append({
+                "start": seg.start,
+                "end": seg.end,
+                "text": seg.text
+            })
+            full_text_parts.append(seg.text.strip())
 
         base_path, _ = os.path.splitext(media_path)
         generated_files = {}
 
         if "srt" in output_formats:
             srt_path = f"{base_path}.srt"
-            self.write_srt(result["segments"], srt_path)
+            self.write_srt(seg_list, srt_path)
             generated_files["srt"] = srt_path
 
         if "txt" in output_formats:
             txt_path = f"{base_path}.txt"
-            self.write_txt(result["text"], txt_path)
+            self.write_txt(" ".join(full_text_parts), txt_path)
             generated_files["txt"] = txt_path
 
         if progress_callback:

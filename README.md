@@ -10,13 +10,13 @@
 ![GUI](https://img.shields.io/badge/GUI-PySide6%20(Qt6)-41CD52.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Version](https://img.shields.io/badge/Version-v3.1.1-brightgreen.svg)
+![Version](https://img.shields.io/badge/Version-v3.1.2-brightgreen.svg)
 
 </div>
 
 ---
 
-**StreamScribe**, [yt-dlp](https://github.com/yt-dlp/yt-dlp), [PySide6 (Qt)](https://doc.qt.io/qtforpython/) ve [OpenAI Whisper](https://github.com/openai/whisper) üzerine inşa edilmiş, modern, şık ve yüksek performanslı bir masaüstü video indirme ve yapay zeka altyazı/transkripsiyon uygulamasıdır.
+**StreamScribe**, [yt-dlp](https://github.com/yt-dlp/yt-dlp), [PySide6 (Qt)](https://doc.qt.io/qtforpython/) ve [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (CTranslate2) üzerine inşa edilmiş, modern, şık ve yüksek performanslı bir masaüstü video indirme ve yapay zeka altyazı/transkripsiyon uygulamasıdır.
 
 > 💡 **Kurulum veya Python gerekmez:** Tek bir `.exe` dosyasını yukarıdaki butona tıklayarak doğrudan en son sürümün releases sayfasından indirebilirsiniz. Dahili FFmpeg ve tüm bağımlılıklar pakete dahildir.
 
@@ -31,7 +31,7 @@
 
 ---
 
-## 🚀 Öne Çıkan Özellikler (v3.1.1)
+## 🚀 Öne Çıkan Özellikler (v3.1.2)
 
 ### 🎨 Modern & Ferah PySide6 (Qt) Arayüzü
 - **Sıfırdan Yenilenen Mimari:** Eski hantal arayüz yerine, akıcı ve duyarlı PySide6 (Qt) mimarisi.
@@ -154,7 +154,7 @@ Harici Python veya FFmpeg gerektirmeyen tek bir `.exe` üretmek için:
 python build.py
 ```
 
-Derlenen dosya `releases/v3.1.1/Streamscribe_v3.1.1_Standalone.exe` dizininde oluşturulur.
+Derlenen dosya `releases/v3.1.2/Streamscribe_v3.1.2_Standalone.exe` dizininde oluşturulur.
 
 ---
 

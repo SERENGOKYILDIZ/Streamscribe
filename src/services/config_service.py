@@ -16,7 +16,7 @@ from dataclasses import dataclass, asdict, field
 class AppSettings:
     # General
     app_name: str = "StreamScribe"
-    app_version: str = "3.1.1"
+    app_version: str = "3.1.2"
     theme_mode: str = "dark"           # "dark", "light", "system"
     theme_color: str = "blue"          # "blue", "purple", "emerald"
     download_dir: str = field(default_factory=lambda: str(Path.home() / "Downloads" / "StreamScribe"))

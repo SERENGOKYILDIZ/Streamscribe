@@ -5,9 +5,8 @@ yt-dlp>=2026.8.19
 Pillow>=10.2.0
 requests>=2.31.0
 
-# Optional Whisper Transcription support
-openai-whisper>=20231117
-torch>=2.0.0
+# AI Transcription (Faster-Whisper via CTranslate2 - 4x faster, no PyTorch overhead)
+faster-whisper>=1.0.0
 
 # Build and Packaging
 pyinstaller>=6.10.0
